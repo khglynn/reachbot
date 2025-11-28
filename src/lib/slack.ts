@@ -1,5 +1,14 @@
 import { SlackApp } from '@vercel/slack-bolt'
+import { generateText } from 'ai'
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { startResearchWorkflow } from '@/workflows/research'
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+})
+
+// Fast model for follow-up questions
+const FOLLOWUP_MODEL = 'anthropic/claude-haiku-4.5'
 
 export const slackApp = new SlackApp({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
@@ -21,7 +30,7 @@ slackApp.event('app_mention', async ({ event, say, client }) => {
   // Acknowledge the request
   await say({
     thread_ts: event.ts,
-    text: `🔬 Starting research on: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"\n\nQuerying Claude, GPT, and Gemini in parallel...`
+    text: `🔬 Starting research on: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"\n\nQuerying Claude Haiku, Gemini Flash, and DeepSeek R1 in parallel...`
   })
 
   // Start the durable workflow
@@ -53,31 +62,34 @@ slackApp.event('message', async ({ event, say, client }) => {
   // Only respond to threaded messages that aren't from bots
   if (!event.thread_ts || event.bot_id || event.subtype) return
   
-  // Quick follow-up with single fast model
-  const { streamText } = await import('ai')
-  const { anthropic } = await import('@ai-sdk/anthropic')
-  
+  // Quick follow-up with single fast model via OpenRouter
   await say({
     thread_ts: event.thread_ts,
     text: '💭 Thinking...'
   })
 
-  const result = await streamText({
-    model: anthropic('claude-3-5-haiku-20241022'),
-    messages: [
-      { role: 'system', content: 'You are a helpful research assistant. Give concise, informative answers.' },
-      { role: 'user', content: event.text }
-    ],
-    maxTokens: 1000,
-  })
+  try {
+    const result = await generateText({
+      model: openrouter(FOLLOWUP_MODEL),
+      messages: [
+        { role: 'system', content: 'You are a helpful research assistant. Give concise, informative answers.' },
+        { role: 'user', content: event.text }
+      ],
+      maxTokens: 1000,
+    })
 
-  const response = await result.text
-  
-  await client.chat.postMessage({
-    channel: event.channel,
-    thread_ts: event.thread_ts,
-    text: response,
-  })
+    await client.chat.postMessage({
+      channel: event.channel,
+      thread_ts: event.thread_ts,
+      text: result.text,
+    })
+  } catch (error) {
+    await client.chat.postMessage({
+      channel: event.channel,
+      thread_ts: event.thread_ts,
+      text: `❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    })
+  }
 })
 
 function formatResearchResult(result: any) {
@@ -97,7 +109,7 @@ function formatResearchResult(result: any) {
       type: 'context',
       elements: [
         { type: 'mrkdwn', text: `*Models:* ${result.models.join(', ')}` },
-        { type: 'mrkdwn', text: `*Time:* ${result.duration}s` },
+        { type: 'mrkdwn', text: `*Time:* ${result.duration.toFixed(1)}s` },
       ]
     },
     {

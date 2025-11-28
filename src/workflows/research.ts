@@ -1,8 +1,10 @@
 import { workflow } from '@vercel/workflow'
 import { generateText } from 'ai'
-import { anthropic } from '@ai-sdk/anthropic'
-import { openai } from '@ai-sdk/openai'
-import { google } from '@ai-sdk/google'
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+})
 
 interface ResearchInput {
   question: string
@@ -27,12 +29,15 @@ interface ResearchResult {
   duration: number
 }
 
-// Define the models to query
+// Models for Slack research (optimized for speed + quality balance)
 const RESEARCH_MODELS = [
-  { id: 'claude', provider: anthropic, model: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-  { id: 'gpt', provider: openai, model: 'gpt-4o', name: 'GPT-4o' },
-  { id: 'gemini', provider: google, model: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash' },
+  { id: 'anthropic/claude-haiku-4.5', name: 'Claude Haiku 4.5' },
+  { id: 'google/gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash' },
+  { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1' },
 ]
+
+// Orchestrator/Synthesizer model
+const ORCHESTRATOR_MODEL = 'anthropic/claude-sonnet-4-20250514'
 
 export const startResearchWorkflow = workflow<ResearchInput, ResearchResult>(
   'research-workflow',
@@ -47,7 +52,7 @@ export const startResearchWorkflow = workflow<ResearchInput, ResearchResult>(
         const modelStart = Date.now()
         try {
           const result = await generateText({
-            model: modelConfig.provider(modelConfig.model),
+            model: openrouter(modelConfig.id),
             messages: [
               {
                 role: 'system',
@@ -84,7 +89,7 @@ Be concise but comprehensive. Use markdown formatting.`
       throw new Error('All models failed to respond')
     }
 
-    // Synthesize responses using Claude
+    // Synthesize responses using Claude Sonnet
     const synthesisPrompt = `You are synthesizing research from multiple AI models.
 
 QUESTION: ${input.question}
@@ -101,7 +106,7 @@ Create a unified synthesis that:
 Format with markdown. Start with the synthesis directly, no preamble.`
 
     const synthesis = await generateText({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model: openrouter(ORCHESTRATOR_MODEL),
       messages: [{ role: 'user', content: synthesisPrompt }],
       maxTokens: 1500,
       temperature: 0.5,
