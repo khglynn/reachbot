@@ -447,7 +447,7 @@ export default function Home() {
                   value={followUpQuery} 
                   onChange={(e) => setFollowUpQuery(e.target.value)}
                   placeholder="Ask a follow-up question..."
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-100 min-h-[80px] resize-none" 
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 dark:text-slate-100 min-h-[120px] resize-y" 
                   disabled={isLoading} 
                 />
                 <ModelSelector showState={showFollowUpModels} setShowState={setShowFollowUpModels} />
