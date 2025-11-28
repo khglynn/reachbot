@@ -1,21 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { slack, verifySlackRequest } from '@/lib/slack'
-import { generateText } from 'ai'
-import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { runResearch, runFollowUp, ResearchImage, RESEARCH_MODELS } from '@/lib/research'
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-})
-
-// Models for research
-const RESEARCH_MODELS = [
-  { id: 'anthropic/claude-haiku-4.5', name: 'Claude Haiku 4.5' },
-  { id: 'google/gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash' },
-  { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1' },
-]
-
-const ORCHESTRATOR_MODEL = 'anthropic/claude-4-sonnet-20250522'
-const FOLLOWUP_MODEL = 'anthropic/claude-haiku-4.5'
+export const maxDuration = 60 // Allow longer execution for research
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -62,93 +49,104 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
+async function downloadSlackImage(file: any): Promise<ResearchImage | null> {
+  try {
+    // Get the private download URL and fetch with auth
+    const response = await fetch(file.url_private_download || file.url_private, {
+      headers: {
+        'Authorization': `Bearer ${process.env.SLACK_BOT_TOKEN}`
+      }
+    })
+    
+    if (!response.ok) {
+      console.error('Failed to download image:', response.status)
+      return null
+    }
+
+    const buffer = await response.arrayBuffer()
+    const base64 = Buffer.from(buffer).toString('base64')
+    
+    // Map Slack mimetype to our format
+    let mimeType: ResearchImage['mimeType'] = 'image/jpeg'
+    if (file.mimetype === 'image/png') mimeType = 'image/png'
+    else if (file.mimetype === 'image/gif') mimeType = 'image/gif'
+    else if (file.mimetype === 'image/webp') mimeType = 'image/webp'
+
+    return { base64, mimeType }
+  } catch (error) {
+    console.error('Error downloading Slack image:', error)
+    return null
+  }
+}
+
 async function processAppMention(event: any) {
   const text = event.text.replace(/<@[A-Z0-9]+>/gi, '').trim()
   const channel = event.channel
   const threadTs = event.ts
 
-  if (!text) {
+  if (!text && (!event.files || event.files.length === 0)) {
     await slack.chat.postMessage({
       channel,
       thread_ts: threadTs,
-      text: "Hi! Ask me a research question and I'll query multiple AI models. Example: `@ResearchBot What are the pros and cons of serverless?`"
+      text: "Hi! Ask me a research question and I'll query multiple AI models.\n\nExamples:\n• `@ResearchBot What are the pros and cons of serverless?`\n• Upload an image and ask me to analyze it!"
     })
     return
   }
+
+  // Check for images
+  const images: ResearchImage[] = []
+  if (event.files && event.files.length > 0) {
+    const imageFiles = event.files.filter((f: any) => 
+      f.mimetype?.startsWith('image/') && 
+      ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(f.mimetype)
+    )
+    
+    for (const file of imageFiles.slice(0, 4)) { // Limit to 4 images
+      const img = await downloadSlackImage(file)
+      if (img) images.push(img)
+    }
+  }
+
+  const hasImages = images.length > 0
+  const queryText = text || (hasImages ? 'What is in this image? Describe and analyze it.' : '')
 
   // Acknowledge
   await slack.chat.postMessage({
     channel,
     thread_ts: threadTs,
-    text: `🔬 Researching: "${text.substring(0, 80)}${text.length > 80 ? '...' : ''}"\n\nQuerying ${RESEARCH_MODELS.length} models in parallel...`
+    text: `🔬 Researching: "${queryText.substring(0, 80)}${queryText.length > 80 ? '...' : ''}"${hasImages ? ` (with ${images.length} image${images.length > 1 ? 's' : ''})` : ''}\n\nQuerying ${RESEARCH_MODELS.length} models in parallel...`
   })
 
-  const startTime = Date.now()
-
-  // Query all models in parallel
-  const responses = await Promise.all(
-    RESEARCH_MODELS.map(async (model) => {
-      try {
-        const result = await generateText({
-          model: openrouter(model.id),
-          messages: [
-            { role: 'system', content: 'You are an expert research assistant. Provide thorough, well-reasoned answers. Be concise but comprehensive.' },
-            { role: 'user', content: text }
-          ],
-          maxTokens: 2000,
-        })
-        return { model: model.name, content: result.text, success: true }
-      } catch (error) {
-        return { model: model.name, content: '', success: false, error: String(error) }
-      }
+  try {
+    const result = await runResearch({
+      query: queryText,
+      images: hasImages ? images : undefined
     })
-  )
 
-  const successful = responses.filter(r => r.success)
+    const duration = (result.totalDurationMs / 1000).toFixed(1)
 
-  if (successful.length === 0) {
     await slack.chat.postMessage({
       channel,
       thread_ts: threadTs,
-      text: '❌ All models failed to respond. Please try again.'
+      text: result.synthesis,
+      blocks: [
+        { type: 'header', text: { type: 'plain_text', text: '🔬 Research Complete', emoji: true } },
+        { type: 'section', text: { type: 'mrkdwn', text: result.synthesis.substring(0, 2900) } },
+        { type: 'divider' },
+        { type: 'context', elements: [
+          { type: 'mrkdwn', text: `*Models:* ${result.responses.filter(r => r.success).map(r => r.model).join(', ')}` },
+          { type: 'mrkdwn', text: `*Time:* ${duration}s` },
+          ...(hasImages ? [{ type: 'mrkdwn', text: `*Images:* ${images.length}` }] : [])
+        ]}
+      ]
     })
-    return
+  } catch (error) {
+    await slack.chat.postMessage({
+      channel,
+      thread_ts: threadTs,
+      text: `❌ Research failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    })
   }
-
-  // Synthesize
-  const synthesisPrompt = `Synthesize these AI responses to: "${text}"
-
-${successful.map(r => `### ${r.model}\n${r.content}`).join('\n\n---\n\n')}
-
-Create a unified synthesis (max 400 words) that:
-1. Key consensus points
-2. Notable disagreements  
-3. Actionable insights
-
-Use markdown. Start directly, no preamble.`
-
-  const synthesis = await generateText({
-    model: openrouter(ORCHESTRATOR_MODEL),
-    messages: [{ role: 'user', content: synthesisPrompt }],
-    maxTokens: 1500,
-  })
-
-  const duration = ((Date.now() - startTime) / 1000).toFixed(1)
-
-  await slack.chat.postMessage({
-    channel,
-    thread_ts: threadTs,
-    text: synthesis.text,
-    blocks: [
-      { type: 'header', text: { type: 'plain_text', text: '🔬 Research Complete', emoji: true } },
-      { type: 'section', text: { type: 'mrkdwn', text: synthesis.text.substring(0, 2900) } },
-      { type: 'divider' },
-      { type: 'context', elements: [
-        { type: 'mrkdwn', text: `*Models:* ${successful.map(r => r.model).join(', ')}` },
-        { type: 'mrkdwn', text: `*Time:* ${duration}s` },
-      ]}
-    ]
-  })
 }
 
 async function processFollowUp(event: any) {
@@ -156,19 +154,12 @@ async function processFollowUp(event: any) {
   const threadTs = event.thread_ts
 
   try {
-    const result = await generateText({
-      model: openrouter(FOLLOWUP_MODEL),
-      messages: [
-        { role: 'system', content: 'You are a helpful research assistant. Give concise answers.' },
-        { role: 'user', content: event.text }
-      ],
-      maxTokens: 1000,
-    })
+    const result = await runFollowUp(event.text)
 
     await slack.chat.postMessage({
       channel,
       thread_ts: threadTs,
-      text: result.text
+      text: result
     })
   } catch (error) {
     await slack.chat.postMessage({
