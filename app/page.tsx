@@ -154,11 +154,7 @@ export default function Home() {
       const short = r.synthesis.split(' ').slice(0, 400).join(' ')
       return `Research ${i + 1}: "${r.query.slice(0, 80)}"
 Findings: ${short}`
-    }).join('
-
----
-
-')
+    }).join('\n\n---\n\n')
   }
 
   // Voice transcription
@@ -313,13 +309,9 @@ New question: ${finalQuery}`
     let finalQuery = originalQuery
     const filled = answers.filter(a => a.trim())
     if (filled.length > 0) {
-      finalQuery += '
-
-Context:
-' + clarifyingQuestions
+      finalQuery += '\n\nContext:\n' + clarifyingQuestions
         .map((q, i) => answers[i].trim() ? `${q}: ${answers[i]}` : '')
-        .filter(Boolean).join('
-')
+        .filter(Boolean).join('\n')
     }
     runFullResearch(finalQuery)
   }
@@ -621,8 +613,7 @@ Context:
                     )}
                   </div>
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {result.synthesis.split('
-').map((para, i) => (
+                    {result.synthesis.split('\n').map((para, i) => (
                       <p key={i}>{para}</p>
                     ))}
                   </div>
@@ -667,8 +658,7 @@ Context:
                           </div>
                           {response.success ? (
                             <div className="text-sm text-slate-600 dark:text-slate-300 prose prose-sm dark:prose-invert max-w-none">
-                              {response.content.split('
-').map((para, j) => (
+                              {response.content.split('\n').map((para, j) => (
                                 <p key={j}>{para}</p>
                               ))}
                             </div>
