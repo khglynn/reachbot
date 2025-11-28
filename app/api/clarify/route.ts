@@ -2,20 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-})
-
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json()
+    const { query, apiKey } = await request.json()
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
     }
+
+    const openrouter = createOpenRouter({
+      apiKey: apiKey || process.env.OPENROUTER_API_KEY!,
+    })
 
     const result = await generateText({
       model: openrouter('anthropic/claude-haiku-4.5'),

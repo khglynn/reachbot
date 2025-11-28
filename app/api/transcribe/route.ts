@@ -7,8 +7,9 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData()
     const audioBlob = formData.get('audio') as Blob
-    const service = formData.get('service') as string || 'groq'
+    const service = formData.get('service') as string || 'openai'
     const context = formData.get('context') as string || ''
+    const userApiKey = formData.get('apiKey') as string || ''
     
     if (!audioBlob) {
       return NextResponse.json({ error: 'No audio provided' }, { status: 400 })
@@ -18,23 +19,19 @@ export async function POST(request: Request) {
     let transcriptionText = ''
     
     if (service === 'groq') {
-      const groqKey = process.env.GROQ_API_KEY
+      const groqKey = userApiKey || process.env.GROQ_API_KEY
       if (!groqKey) {
-        return NextResponse.json({ error: 'Groq API key not configured. Add GROQ_API_KEY to environment variables.' }, { status: 500 })
+        return NextResponse.json({ error: 'Groq API key not configured. Add it in Settings or set GROQ_API_KEY server-side.' }, { status: 500 })
       }
       
       const groqFormData = new FormData()
       groqFormData.append('file', new Blob([buffer], { type: 'audio/webm' }), 'audio.webm')
       groqFormData.append('model', 'whisper-large-v3')
-      if (context) {
-        groqFormData.append('prompt', context)
-      }
+      if (context) groqFormData.append('prompt', context)
       
       const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqKey}`,
-        },
+        headers: { 'Authorization': `Bearer ${groqKey}` },
         body: groqFormData,
       })
       
@@ -47,23 +44,19 @@ export async function POST(request: Request) {
       transcriptionText = result.text
       
     } else if (service === 'openai') {
-      const openaiKey = process.env.OPENAI_API_KEY
+      const openaiKey = userApiKey || process.env.OPENAI_API_KEY
       if (!openaiKey) {
-        return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
+        return NextResponse.json({ error: 'OpenAI API key not configured. Add it in Settings or set OPENAI_API_KEY server-side.' }, { status: 500 })
       }
       
       const openaiFormData = new FormData()
       openaiFormData.append('file', new Blob([buffer], { type: 'audio/webm' }), 'audio.webm')
       openaiFormData.append('model', 'whisper-1')
-      if (context) {
-        openaiFormData.append('prompt', context)
-      }
+      if (context) openaiFormData.append('prompt', context)
       
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiKey}`,
-        },
+        headers: { 'Authorization': `Bearer ${openaiKey}` },
         body: openaiFormData,
       })
       
@@ -76,9 +69,9 @@ export async function POST(request: Request) {
       transcriptionText = result.text
       
     } else if (service === 'deepgram') {
-      const deepgramKey = process.env.DEEPGRAM_API_KEY
+      const deepgramKey = userApiKey || process.env.DEEPGRAM_API_KEY
       if (!deepgramKey) {
-        return NextResponse.json({ error: 'Deepgram API key not configured' }, { status: 500 })
+        return NextResponse.json({ error: 'Deepgram API key not configured. Add it in Settings or set DEEPGRAM_API_KEY server-side.' }, { status: 500 })
       }
       
       const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true', {

@@ -7,7 +7,7 @@ export const maxDuration = 120
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { query, images, mode, modelIds, orchestratorId } = body
+    const { query, images, mode, modelIds, orchestratorId, apiKey } = body
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
       images,
       mode: mode as 'quick' | 'deep',
       modelIds,
-      orchestratorId
+      orchestratorId,
+      apiKey
     })
 
     return NextResponse.json(result)

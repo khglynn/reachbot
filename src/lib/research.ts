@@ -1,9 +1,12 @@
 import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-})
+// Create openrouter client with optional custom API key
+function getOpenRouter(apiKey?: string) {
+  return createOpenRouter({
+    apiKey: apiKey || process.env.OPENROUTER_API_KEY!,
+  })
+}
 
 // All available models for selection - verified against OpenRouter Nov 2025
 // Organized by provider, then reasoning capability
@@ -208,6 +211,7 @@ export interface ResearchRequest {
   modelIds?: string[] // Selected model IDs
   mode?: 'quick' | 'deep'
   orchestratorId?: string
+  apiKey?: string // Optional user-provided OpenRouter key
 }
 
 export interface ModelResponse {
@@ -286,6 +290,7 @@ export async function runResearch(request: ResearchRequest): Promise<ResearchRes
   const startTime = Date.now()
   const hasImages = request.images && request.images.length > 0
   const orchestratorId = request.orchestratorId || DEFAULT_ORCHESTRATOR
+  const openrouter = getOpenRouter(request.apiKey)
   
   // Get models to use
   let modelIds = request.modelIds
