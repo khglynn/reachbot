@@ -6,44 +6,19 @@ export const maxDuration = 120
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const query = formData.get('query') as string
-    const mode = (formData.get('mode') as string) || 'quick'
-    const modelIdsJson = formData.get('modelIds') as string
+    const body = await request.json()
+    const { query, images, mode, modelIds, orchestratorId } = body
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
     }
 
-    // Parse model IDs
-    let modelIds: string[] | undefined
-    try {
-      if (modelIdsJson) {
-        modelIds = JSON.parse(modelIdsJson)
-      }
-    } catch {}
-
-    // Process images
-    const images: ResearchImage[] = []
-    const imageFiles = formData.getAll('images') as File[]
-    
-    for (const file of imageFiles) {
-      if (file.size > 0) {
-        const buffer = await file.arrayBuffer()
-        const base64 = Buffer.from(buffer).toString('base64')
-        const mimeType = file.type as ResearchImage['mimeType']
-        
-        if (['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mimeType)) {
-          images.push({ base64, mimeType })
-        }
-      }
-    }
-
     const result = await runResearch({
       query,
-      images: images.length > 0 ? images : undefined,
+      images,
       mode: mode as 'quick' | 'deep',
-      modelIds
+      modelIds,
+      orchestratorId
     })
 
     return NextResponse.json(result)
