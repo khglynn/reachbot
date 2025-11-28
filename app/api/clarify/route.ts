@@ -22,58 +22,54 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You generate clarifying questions to help improve research queries.
+          content: `You analyze research questions and generate 2-4 SPECIFIC clarifying questions that would significantly improve the research quality.
 
-Given a research query, generate 2-4 brief clarifying questions that would help narrow down or improve the research.
+RULES:
+1. Questions must be SPECIFIC to this exact query - no generic "what industry?" type questions
+2. Focus on ambiguities, scope decisions, or important context missing from the query
+3. If the query is already very clear and specific, return just 1-2 questions or empty array
+4. Each question under 20 words
+5. Ask about things that would change what information is relevant
 
-IMPORTANT:
-- Only ask questions if they would genuinely improve the research quality
-- Focus on: scope, timeframe, specific aspects, use case, context
-- Keep questions SHORT (under 15 words each)
-- If the query is already clear and specific, return fewer questions (or even just 1)
+EXAMPLES:
 
-Respond with a JSON array of question strings, nothing else.
-Example: ["What industry or domain?", "Are you looking for free or paid options?", "What's your timeline?"]`
+Query: "Best laptop for me"
+Questions: ["Are you prioritizing portability or performance?", "What's your budget range?", "Any specific software you need to run?"]
+
+Query: "How does photosynthesis work?"  
+Questions: [] (already specific, no clarification needed)
+
+Query: "Compare React and Vue for my project"
+Questions: ["Is this a new project or migrating existing code?", "What's your team's current experience with JS frameworks?"]
+
+Query: "I need a tart, dairy free dessert for thanksgiving"
+Questions: ["How many people are you serving?", "Any nut allergies to consider?", "Do you have a preferred level of difficulty?"]
+
+Respond ONLY with a JSON array of question strings. Empty array if no clarification needed.`
         },
         {
           role: 'user',
           content: query
         }
       ],
-      maxTokens: 300,
+      maxTokens: 400,
     })
 
-    // Parse the JSON array from the response
     let questions: string[] = []
     try {
-      // Try to extract JSON array from the response
       const match = result.text.match(/\[[\s\S]*\]/)
       if (match) {
         questions = JSON.parse(match[0])
       }
     } catch {
-      // If parsing fails, split by newlines and clean up
-      questions = result.text
-        .split('\n')
-        .map(line => line.replace(/^[\d\.\-\*]+\s*/, '').trim())
-        .filter(line => line.length > 0 && line.endsWith('?'))
-        .slice(0, 4)
-    }
-
-    // Ensure we have at least 2 questions, max 4
-    if (questions.length < 2) {
-      questions = [
-        "What specific aspect are you most interested in?",
-        "Is there a particular use case or context?"
-      ]
+      // If parsing fails, no questions
+      questions = []
     }
 
     return NextResponse.json({ questions: questions.slice(0, 4) })
   } catch (error) {
     console.error('Clarify API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to generate clarifying questions' },
-      { status: 500 }
-    )
+    // On error, just proceed without questions
+    return NextResponse.json({ questions: [] })
   }
 }
