@@ -46,8 +46,7 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: 'anthropic/claude-opus-4.5:online', name: 'Claude Opus 4.5', description: 'Top reasoning & writing', provider: 'Anthropic', category: '🏆 Flagship', cost: 5 },
   { id: 'anthropic/claude-sonnet-4.5:online', name: 'Claude Sonnet 4.5', description: 'Best all-rounder', provider: 'Anthropic', category: '🏆 Flagship', cost: 3 },
   { id: 'anthropic/claude-haiku-4.5:online', name: 'Claude Haiku 4.5', description: 'Fast & economical', provider: 'Anthropic', category: '⚡ Fast', cost: 1 },
-  { id: 'openai/gpt-5.1-high:online', name: 'GPT-5.1 High', description: 'Maximum reasoning', provider: 'OpenAI', category: '🏆 Flagship', cost: 4 },
-  { id: 'openai/gpt-5.1:online:medium', name: 'GPT-5.1 Medium', description: 'Balanced reasoning', provider: 'OpenAI', category: '🏆 Flagship', cost: 4 },
+  { id: 'openai/gpt-5.1:online', name: 'GPT-5.1', description: 'High reasoning depth', provider: 'OpenAI', category: '🏆 Flagship', cost: 4 },
   { id: 'openai/o3-mini:online', name: 'o3-mini', description: 'STEM-focused', provider: 'OpenAI', category: '🧠 Reasoning', cost: 2 },
   
   // Column 2: Google + Perplexity
@@ -70,9 +69,9 @@ const MODEL_OPTIONS: ModelOption[] = [
 const ORCHESTRATOR_OPTIONS = [
   { id: 'anthropic/claude-sonnet-4.5', name: 'Claude Sonnet 4.5', description: 'Balanced & reliable' },
   { id: 'anthropic/claude-opus-4.5', name: 'Claude Opus 4.5', description: 'Maximum quality' },
-  { id: 'openai/gpt-5.1-high', name: 'GPT-5.1 High', description: 'Deep reasoning' },
-  { id: 'openai/gpt-5.1:medium', name: 'GPT-5.1 Medium', description: 'Balanced reasoning' },
-  { id: 'openai/gpt-5.1-low', name: 'GPT-5.1 Low', description: 'Fast reasoning' },
+  { id: 'openai/gpt-5.1', name: 'GPT-5.1 High', description: 'Deep reasoning' },
+  { id: 'openai/gpt-5.1', name: 'GPT-5.1', description: 'High reasoning depth' },
+  { id: 'openai/gpt-5.1', name: 'GPT-5.1 Low', description: 'Fast reasoning' },
   { id: 'google/gemini-3-pro-preview', name: 'Gemini 3 Pro', description: 'Multimodal synthesis' },
 ]
 
@@ -83,7 +82,7 @@ const TRANSCRIPTION_SERVICES = [
 ]
 
 const DEFAULT_QUICK = ['anthropic/claude-haiku-4.5:online', 'google/gemini-2.5-flash:online', 'deepseek/deepseek-r1:online']
-const DEFAULT_DEEP = ['anthropic/claude-sonnet-4.5:online', 'openai/gpt-5.1:online:medium', 'google/gemini-3-pro-preview:online', 'deepseek/deepseek-r1:online', 'perplexity/sonar-deep-research']
+const DEFAULT_DEEP = ['anthropic/claude-sonnet-4.5:online', 'openai/gpt-5.1:online', 'google/gemini-3-pro-preview:online', 'deepseek/deepseek-r1:online', 'perplexity/sonar-deep-research']
 
 export default function Home() {
   const [query, setQuery] = useState('')
@@ -153,8 +152,13 @@ export default function Home() {
     const recent = history.slice(-2)
     return recent.map((r, i) => {
       const short = r.synthesis.split(' ').slice(0, 400).join(' ')
-      return `Research ${i + 1}: "${r.query.slice(0, 80)}"\nFindings: ${short}`
-    }).join('\n\n---\n\n')
+      return `Research ${i + 1}: "${r.query.slice(0, 80)}"
+Findings: ${short}`
+    }).join('
+
+---
+
+')
   }
 
   // Voice transcription
@@ -250,7 +254,10 @@ export default function Home() {
     let enhancedQuery = finalQuery
     if (isFollowUp && conversationHistory.length > 0) {
       const context = compactContext(conversationHistory)
-      enhancedQuery = `Context:\n${context}\n\nNew question: ${finalQuery}`
+      enhancedQuery = `Context:
+${context}
+
+New question: ${finalQuery}`
     }
 
     try {
@@ -306,9 +313,13 @@ export default function Home() {
     let finalQuery = originalQuery
     const filled = answers.filter(a => a.trim())
     if (filled.length > 0) {
-      finalQuery += '\n\nContext:\n' + clarifyingQuestions
+      finalQuery += '
+
+Context:
+' + clarifyingQuestions
         .map((q, i) => answers[i].trim() ? `${q}: ${answers[i]}` : '')
-        .filter(Boolean).join('\n')
+        .filter(Boolean).join('
+')
     }
     runFullResearch(finalQuery)
   }
@@ -610,7 +621,8 @@ export default function Home() {
                     )}
                   </div>
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {result.synthesis.split('\n').map((para, i) => (
+                    {result.synthesis.split('
+').map((para, i) => (
                       <p key={i}>{para}</p>
                     ))}
                   </div>
@@ -655,7 +667,8 @@ export default function Home() {
                           </div>
                           {response.success ? (
                             <div className="text-sm text-slate-600 dark:text-slate-300 prose prose-sm dark:prose-invert max-w-none">
-                              {response.content.split('\n').map((para, j) => (
+                              {response.content.split('
+').map((para, j) => (
                                 <p key={j}>{para}</p>
                               ))}
                             </div>

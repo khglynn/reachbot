@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
@@ -11,23 +14,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No audio provided' }, { status: 400 })
     }
     
-    // Convert webm to wav/mp3 if needed (depends on service)
     const buffer = await audioBlob.arrayBuffer()
-    
     let transcriptionText = ''
     
     if (service === 'groq') {
-      // Groq Whisper API
       const groqKey = process.env.GROQ_API_KEY
       if (!groqKey) {
-        return NextResponse.json({ error: 'Groq API key not configured' }, { status: 500 })
+        return NextResponse.json({ error: 'Groq API key not configured. Add GROQ_API_KEY to environment variables.' }, { status: 500 })
       }
       
       const groqFormData = new FormData()
       groqFormData.append('file', new Blob([buffer], { type: 'audio/webm' }), 'audio.webm')
       groqFormData.append('model', 'whisper-large-v3')
       if (context) {
-        groqFormData.append('prompt', context) // Context for better accuracy
+        groqFormData.append('prompt', context)
       }
       
       const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
@@ -47,7 +47,6 @@ export async function POST(request: Request) {
       transcriptionText = result.text
       
     } else if (service === 'openai') {
-      // OpenAI Whisper API
       const openaiKey = process.env.OPENAI_API_KEY
       if (!openaiKey) {
         return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
@@ -77,7 +76,6 @@ export async function POST(request: Request) {
       transcriptionText = result.text
       
     } else if (service === 'deepgram') {
-      // Deepgram Nova-2 API
       const deepgramKey = process.env.DEEPGRAM_API_KEY
       if (!deepgramKey) {
         return NextResponse.json({ error: 'Deepgram API key not configured' }, { status: 500 })
@@ -99,6 +97,8 @@ export async function POST(request: Request) {
       
       const result = await response.json()
       transcriptionText = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || ''
+    } else {
+      return NextResponse.json({ error: `Unknown transcription service: ${service}` }, { status: 400 })
     }
     
     return NextResponse.json({ text: transcriptionText })
