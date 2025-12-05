@@ -7,7 +7,7 @@ export const maxDuration = 800 // Fluid compute allows up to 800s on Pro
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { query, images, modelIds, orchestratorId, apiKey, byokMode } = body
+    const { query, attachments, modelIds, orchestratorId, apiKey, byokMode } = body
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const result = await runResearch({
       query,
-      images,
+      attachments,
       modelIds,
       orchestratorId,
       apiKey,

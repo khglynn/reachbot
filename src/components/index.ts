@@ -1,0 +1,19 @@
+/**
+ * Components Index
+ *
+ * Re-exports all UI components for convenient importing.
+ *
+ * @module components
+ *
+ * @example
+ * import { InputForm, ResultsView, SettingsModal } from '@/components'
+ */
+
+export { Pill } from './Pill'
+export { ModelAccordion } from './ModelAccordion'
+export { SettingsModal } from './SettingsModal'
+export { HelpModal } from './HelpModal'
+export { InputForm } from './InputForm'
+export { ClarifyingQuestions } from './ClarifyingQuestions'
+export { ResultsView } from './ResultsView'
+export { ResearchProgress } from './ResearchProgress'

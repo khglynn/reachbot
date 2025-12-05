@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(rmdir:*)",
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(npm --version:*)",
+      "Bash(node --version:*)",
+      "Bash(export PATH=\"/usr/local/opt/node@20/bin:$PATH\")",
+      "Bash(export PATH=\"/usr/local/opt/node@20/bin:/usr/bin:/bin:$PATH\")",
+      "Bash(/bin/rm:*)",
+      "Bash(npm run build:*)",
+      "WebSearch",
+      "WebFetch(domain:openrouter.ai)",
+      "Bash(curl:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
