@@ -51,7 +51,7 @@ export function ResearchProgress({
         <div className="animate-spin text-lg">⏳</div>
         <p className="text-sm font-medium text-blue-300">
           {phase === 'synthesizing'
-            ? 'Synthesizing responses...'
+            ? 'Creating summary...'
             : isFollowUp
             ? `Processing follow-up with ${totalModels} models...`
             : `Querying ${totalModels} models...`}
@@ -94,7 +94,7 @@ export function ResearchProgress({
               : 'bg-slate-700 text-slate-500'
           }`}
         >
-          {phase === 'synthesizing' ? '◉ Synthesis' : '○ Synthesis'}
+          {phase === 'synthesizing' ? '◉ Summary' : '○ Summary'}
         </span>
       </div>
     </div>

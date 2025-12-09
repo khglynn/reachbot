@@ -23,9 +23,21 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <meta name="theme-color" content="#0c4271" />
+        <meta name="theme-color" content="#03178C" />
       </head>
-      <body className="antialiased bg-paper-bg min-h-screen">{children}</body>
+      <body className="antialiased bg-paper-bg min-h-screen">
+        {/* SVG filter for chalk effect on loading bar */}
+        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+          <defs>
+            <filter id="chalk" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="4" seed="3" result="noise"/>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G"/>
+              <feGaussianBlur stdDeviation="0.3"/>
+            </filter>
+          </defs>
+        </svg>
+        {children}
+      </body>
     </html>
   )
 }

@@ -21,7 +21,9 @@ interface ResultsViewProps {
 }
 
 /** Height threshold for showing expand/collapse button (in pixels) */
-const QUERY_COLLAPSE_THRESHOLD = 100
+const QUERY_COLLAPSE_THRESHOLD = 250
+/** Minimum characters before considering collapse */
+const MIN_CHARS_TO_COLLAPSE = 300
 
 /**
  * Displays the research results.
@@ -37,10 +39,12 @@ function QueryDisplay({ query, roundIdx }: { query: string; roundIdx: number }) 
   const [isExpanded, setIsExpanded] = useState(false)
   const [needsExpansion, setNeedsExpansion] = useState(false)
 
-  // Check if content exceeds threshold
+  // Check if content exceeds both height AND character thresholds
   useEffect(() => {
     if (contentRef.current) {
-      setNeedsExpansion(contentRef.current.scrollHeight > QUERY_COLLAPSE_THRESHOLD)
+      const exceedsHeight = contentRef.current.scrollHeight > QUERY_COLLAPSE_THRESHOLD
+      const exceedsChars = query.length > MIN_CHARS_TO_COLLAPSE
+      setNeedsExpansion(exceedsHeight && exceedsChars)
     }
   }, [query])
 
@@ -121,7 +125,7 @@ export function ResultsView({ conversationHistory }: ResultsViewProps) {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-slate-800 dark:text-slate-100">
-                ✨ Synthesis
+                ✨ Summary
               </h3>
               {result.totalCost !== undefined && result.totalCost > 0 && (
                 <span className="text-xs text-green-600 dark:text-green-400">

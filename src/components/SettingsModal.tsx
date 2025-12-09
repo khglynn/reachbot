@@ -157,10 +157,10 @@ export function SettingsModal({ settings, onSave, onClose, byokMode }: SettingsM
             </div>
           </section>
 
-          {/* Synthesis Model Section */}
+          {/* Summary Model Section */}
           <section>
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Synthesis Model
+              Summary Model
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
               Which model combines all responses.
@@ -200,13 +200,13 @@ export function SettingsModal({ settings, onSave, onClose, byokMode }: SettingsM
             </div>
           </section>
 
-          {/* Synthesis Prompt Section */}
+          {/* Summary Prompt Section */}
           <section>
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Synthesis Prompt
+              Summary Prompt
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-              Instructions for how the orchestrator should synthesize responses.
+              Instructions for how the orchestrator should summarize responses.
             </p>
             <textarea
               value={settings.orchestratorPrompt ?? DEFAULT_ORCHESTRATOR_PROMPT}
