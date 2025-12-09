@@ -42,6 +42,8 @@ export interface OrchestratorOption {
   name: string
   /** Description of synthesis style */
   description: string
+  /** Blended cost per 1M tokens (assuming 3:1 output:input ratio) */
+  blendedCost: number
 }
 
 /**

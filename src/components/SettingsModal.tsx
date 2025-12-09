@@ -166,25 +166,37 @@ export function SettingsModal({ settings, onSave, onClose, byokMode }: SettingsM
               Which model combines all responses.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {ORCHESTRATOR_OPTIONS.map((orch) => (
-                <button
-                  key={orch.id}
-                  type="button"
-                  onClick={() => handleSave({ orchestrator: orch.id })}
-                  className={`text-left p-2 rounded-lg text-sm transition-colors ${
-                    settings.orchestrator === orch.id
-                      ? 'bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-400'
-                      : 'bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="font-medium text-slate-700 dark:text-slate-200">
-                    {orch.name}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {orch.description}
-                  </div>
-                </button>
-              ))}
+              {ORCHESTRATOR_OPTIONS.map((orch) => {
+                // Format cost: per 200K tokens, rounded to nearest $0.05
+                const costPer200K = orch.blendedCost / 5
+                const roundedCost = Math.round(costPer200K / 0.05) * 0.05
+                const costDisplay = `$${roundedCost.toFixed(2)}`
+
+                return (
+                  <button
+                    key={orch.id}
+                    type="button"
+                    onClick={() => handleSave({ orchestrator: orch.id })}
+                    className={`text-left p-2 rounded-lg text-sm transition-colors ${
+                      settings.orchestrator === orch.id
+                        ? 'bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-400'
+                        : 'bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-slate-700 dark:text-slate-200">
+                        {orch.name}
+                      </span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">
+                        {costDisplay}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {orch.description}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </section>
 

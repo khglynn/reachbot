@@ -216,22 +216,26 @@ export const ORCHESTRATOR_OPTIONS: OrchestratorOption[] = [
   {
     id: 'anthropic/claude-sonnet-4.5',
     name: 'Claude Sonnet 4.5',
-    description: 'Fast, clear writing',
+    description: 'Balanced, exploratory',
+    blendedCost: 12.0, // $3 in, $15 out
   },
   {
     id: 'anthropic/claude-opus-4.5',
     name: 'Claude Opus 4.5',
-    description: 'Nuanced, thorough',
+    description: 'Precise, decisive',
+    blendedCost: 60.0, // $15 in, $75 out
   },
   {
     id: 'openai/gpt-5.1',
     name: 'GPT-5.1',
-    description: 'Structured, analytical',
+    description: 'Warm, structured',
+    blendedCost: 7.81, // $1.25 in, $10 out
   },
   {
     id: 'google/gemini-3-pro-preview',
     name: 'Gemini 3 Pro',
-    description: 'Concise, direct',
+    description: 'Direct, insight-focused',
+    blendedCost: 8.13, // $2.5 in, $10 out
   },
 ]
 

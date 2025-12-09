@@ -21,13 +21,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
+        <meta name="theme-color" content="#0f1729" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased bg-paper-bg min-h-screen">{children}</body>
     </html>
   )
 }
