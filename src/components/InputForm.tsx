@@ -112,7 +112,7 @@ export function InputForm({
   visibleModels,
   selectedModels,
   onToggleModel,
-  placeholder = 'What would you like to research?',
+  placeholder = 'What should we eachsearch?',
   submitLabel = 'Research',
   isFollowUp = false,
   sessionPrompt,

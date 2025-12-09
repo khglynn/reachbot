@@ -764,7 +764,7 @@ export default function Home() {
         )}
 
         {/* ---- Footer ---- */}
-        <footer className="mt-8 pt-4 text-xs text-paper-muted flex items-center justify-between">
+        <footer className="mt-6 text-xs text-paper-muted flex items-center justify-between">
           <div>
             <a href="/terms" className="hover:text-paper-accent">Terms</a>
             <span className="mx-2">·</span>
