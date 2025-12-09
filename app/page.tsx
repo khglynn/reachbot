@@ -574,7 +574,7 @@ export default function Home() {
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
         {/* ---- Header ---- */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-end gap-0">
+          <div className="flex items-end gap-1">
             {/* Chalk wordmark */}
             <img
               src="/eachie-wordmark.png"
@@ -587,7 +587,7 @@ export default function Home() {
             <img
               src="/eachie-spider.png"
               alt="Eachie spider mascot"
-              className="h-4 sm:h-5 w-auto object-contain mb-1 sm:mb-1.5"
+              className="h-[18px] sm:h-[22px] w-auto object-contain mb-0.5 sm:mb-1"
               loading="eager"
               role="img"
             />
