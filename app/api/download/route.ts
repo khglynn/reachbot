@@ -1,33 +1,8 @@
 import { NextRequest } from 'next/server'
 import JSZip from 'jszip'
+import type { ResearchResult } from '@/types'
 
 export const runtime = 'nodejs'
-
-interface ModelResponse {
-  model: string
-  modelId: string
-  content: string
-  success: boolean
-  durationMs?: number
-  usage?: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
-  cost?: number
-}
-
-interface ResearchResult {
-  query: string
-  responses: ModelResponse[]
-  synthesis: string
-  totalDurationMs: number
-  modelCount: number
-  successCount: number
-  totalCost?: number
-  timestamp?: string
-  orchestrator?: string
-}
 
 interface DownloadRequest {
   history: ResearchResult[]

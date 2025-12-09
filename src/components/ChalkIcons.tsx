@@ -660,3 +660,31 @@ export function ChalkDollar({ className = '', size = 24 }: IconProps) {
     </svg>
   )
 }
+
+/**
+ * Spider icon - chalk style (for Eachie branding)
+ */
+export function ChalkSpider({ className = '', size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+    >
+      {/* Body */}
+      <ellipse cx="12" cy="14" rx="4" ry="5" stroke="currentColor" strokeWidth="2" />
+      {/* Head */}
+      <circle cx="12" cy="7" r="3" stroke="currentColor" strokeWidth="2" />
+      {/* Left legs */}
+      <path d="M8 12c-2-1-4-1-5 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 14c-2 0-4 1-5 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 16c-2 1-3 3-3 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      {/* Right legs */}
+      <path d="M16 12c2-1 4-1 5 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 14c2 0 4 1 5 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 16c2 1 3 3 3 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}

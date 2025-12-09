@@ -47,7 +47,19 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [attachmentErrors, setAttachmentErrors] = useState<string[]>([])
 
-  // Refs to track current values synchronously (avoids stale state from useTransition)
+  /**
+   * Query refs solve a timing issue with useTransition:
+   *
+   * Problem: useTransition batches state updates for smoother rendering,
+   * but this means the state value isn't immediately available after a set call.
+   * When the user submits the form, we need the *current* query value synchronously.
+   *
+   * Solution: Maintain parallel refs that update synchronously.
+   * - queryRef.current = immediate value (for form submission)
+   * - setQueryRaw via startTransition = batched value (for rendering)
+   *
+   * This pattern is necessary for INP optimization while keeping form submission accurate.
+   */
   const queryRef = useRef('')
   const followUpQueryRef = useRef('')
 
@@ -55,7 +67,7 @@ export default function Home() {
   const [, startTransition] = useTransition()
   const setQuery = useCallback((value: string) => {
     queryRef.current = value // Sync update for form submission
-    startTransition(() => setQueryRaw(value))
+    startTransition(() => setQueryRaw(value)) // Async update for rendering
   }, [])
 
   // ---- Model Selection ----

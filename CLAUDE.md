@@ -135,3 +135,90 @@ See `/docs/design/` for advanced chalk effects:
 - SVG `filter: url(#chalk)` affects the entire element including children
 - Only use `-filtered` variant on elements where wobbly content is OK
 - Icons in `ChalkIcons.tsx` are clean (no filter) for readability
+
+## Customization Guide
+
+Quick reference for making changes to visual elements.
+
+### Where Things Live
+
+| What to Change | Where | How |
+|----------------|-------|-----|
+| **Colors** | `tailwind.config.js:10-42` | Edit `paper.*` values |
+| **Icons** | `src/components/ChalkIcons.tsx` | Add/edit SVG functions |
+| **Chalk filter** | `app/layout.tsx:30-38` | Modify SVG filter params |
+| **Logo/favicon** | `public/` folder | Replace PNG files |
+| **Models** | `src/config/models.ts` | Edit `MODEL_OPTIONS` array |
+| **Orchestrators** | `src/config/models.ts` | Edit `ORCHESTRATOR_OPTIONS` |
+| **Default models** | `src/config/models.ts:282-291` | Edit `DEFAULT_SELECTED_*` |
+| **Pricing** | `src/lib/pricing.ts` | Update `MODEL_PRICING` map |
+
+### Adding a New Icon
+
+```typescript
+// src/components/ChalkIcons.tsx
+export function ChalkNewIcon({ className = '', size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="..." stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+```
+
+### Adding a New Model
+
+1. Add to `MODEL_OPTIONS` in `src/config/models.ts`:
+```typescript
+{
+  id: 'provider/model-name:online',
+  name: 'Display Name',
+  provider: 'Provider',
+  description: 'Brief description',
+  costTier: '$',  // or '$$' or '$$$'
+  supportsVision: true,  // if applicable
+}
+```
+
+2. Add pricing to `src/lib/pricing.ts`:
+```typescript
+'provider/model-name:online': { input: 1.0, output: 5.0 },
+```
+
+### Changing the Color Scheme
+
+Edit `tailwind.config.js` - all colors are in the `paper.*` namespace:
+```javascript
+paper: {
+  bg: '#020F59',        // Change this for background
+  accent: '#91AAF2',    // Change this for brand color
+  text: '#F2F2F2',      // Change this for text
+  // ...
+}
+```
+
+### Modifying the Chalk Effect
+
+The chalk filter is defined in `app/layout.tsx`:
+```html
+<filter id="chalk">
+  <feTurbulence baseFrequency="0.55" />  <!-- roughness -->
+  <feDisplacementMap scale="2" />         <!-- intensity -->
+  <feGaussianBlur stdDeviation="0.3" />   <!-- smoothing -->
+</filter>
+```
+
+Adjust values for more/less hand-drawn effect.
+
+## Code Review Status (Dec 2024)
+
+Latest review: **Grade A (Excellent)**
+
+- Component organization: A
+- Design system consistency: A-
+- Type safety: A+
+- API layer: B+ (pricing consolidated)
+- Documentation: A
+
+**Ready for:** Database integration, auth, payments.
+See `NEXT-STEPS.md` for implementation roadmap.
