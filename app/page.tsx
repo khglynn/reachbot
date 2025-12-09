@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useEffect, useTransition, useRef } from 'react'
 import type { Stage, ResearchResult, ModelOption, HistoryState, Attachment } from '@/types'
-import { MODEL_OPTIONS, DEFAULT_MODELS } from '@/config/models'
+import { MODEL_OPTIONS, DEFAULT_MODELS, DEFAULT_ORCHESTRATOR_PROMPT } from '@/config/models'
 import { useSettings, useVoiceRecorder, useBrowserHistory } from '@/hooks'
 import { readFiles } from '@/lib/attachments'
 import {
@@ -26,6 +26,7 @@ import {
   SettingsModal,
   HelpModal,
 } from '@/components'
+import { ChalkSettings, ChalkError, ChalkWarning, ChalkQuestion } from '@/components/ChalkIcons'
 
 // ============================================================
 // MAIN COMPONENT
@@ -69,6 +70,9 @@ export default function Home() {
   const [conversationHistory, setConversationHistory] = useState<ResearchResult[]>([])
   const [followUpQuery, setFollowUpQueryRaw] = useState('')
   const [followUpAttachments, setFollowUpAttachments] = useState<Attachment[]>([])
+
+  // ---- Per-Session Prompt Override (not persisted to localStorage) ----
+  const [sessionPrompt, setSessionPrompt] = useState<string | null>(null)
 
   // Non-blocking follow-up query updates
   const setFollowUpQuery = useCallback((value: string) => {
@@ -351,7 +355,7 @@ export default function Home() {
           attachments: currentAttachments.length > 0 ? currentAttachments : undefined,
           modelIds: selectedModels,
           orchestratorId: settings.orchestrator,
-          orchestratorPrompt: settings.orchestratorPrompt || undefined,
+          orchestratorPrompt: sessionPrompt ?? settings.orchestratorPrompt ?? undefined,
           apiKey: settings.openrouterKey || undefined,
           byokMode,
         }),
@@ -535,8 +539,14 @@ export default function Home() {
     setClarifyingQuestions([])
     setAnswers([])
     setError(null)
+    setSessionPrompt(null) // Reset session prompt on new session
     pushState('input')
   }
+
+  // Handler to save prompt as default (persists to settings)
+  const handleSavePromptAsDefault = useCallback((prompt: string) => {
+    saveSettings({ orchestratorPrompt: prompt })
+  }, [saveSettings])
 
   // ============================================================
   // RENDER
@@ -553,33 +563,35 @@ export default function Home() {
         {/* ---- Header ---- */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            {/* Chalk spider logo (transparent background) */}
+            {/* Chalk spider logo */}
             <img
-              src="/spider-48.png"
-              alt="Eachie spider"
-              className="w-10 h-10 sm:w-12 sm:h-12"
+              src="/eachie-spider.png"
+              alt="Eachie - A cute chalk-drawn spider with glasses"
+              className="w-12 h-12 sm:w-14 sm:h-14"
+              loading="eager"
+              role="img"
             />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                Eachie
-              </h1>
-              <p className="text-sm text-blue-200">
-                Multi-model AI research
-              </p>
-            </div>
+            {/* Chalk wordmark */}
+            <img
+              src="/eachie-wordmark.png"
+              alt="Eachie"
+              className="h-8 sm:h-10"
+              loading="eager"
+              role="img"
+            />
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowHelp(true)}
-              className="p-2 text-blue-200 hover:text-white rounded-lg hover:bg-white/10"
+              className="p-2 text-paper-muted hover:text-paper-text rounded-lg hover:bg-paper-hover"
             >
-              <span className="text-lg">?</span>
+              <ChalkQuestion size={20} />
             </button>
             <button
               onClick={() => setShowSettings(true)}
-              className="p-2 text-blue-200 hover:text-white rounded-lg hover:bg-white/10"
+              className="p-2 text-paper-muted hover:text-paper-text rounded-lg hover:bg-paper-hover"
             >
-              <span className="text-lg">⚙️</span>
+              <ChalkSettings size={20} />
             </button>
           </div>
         </div>
@@ -599,11 +611,13 @@ export default function Home() {
 
         {/* ---- Error Banner ---- */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4">
-            <p className="text-red-700 dark:text-red-300 text-sm">❌ {error}</p>
+          <div className="bg-paper-error-muted border border-paper-error/30 rounded-xl p-4 mb-4 chalk-frame">
+            <p className="text-paper-error text-sm flex items-center gap-2">
+              <ChalkError size={16} /> {error}
+            </p>
             <button
               onClick={() => setError(null)}
-              className="text-xs text-red-500 mt-1 hover:underline"
+              className="text-xs text-paper-error/70 mt-1 hover:underline"
             >
               Dismiss
             </button>
@@ -612,16 +626,18 @@ export default function Home() {
 
         {/* ---- Attachment Errors ---- */}
         {attachmentErrors.length > 0 && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4">
-            <p className="text-amber-700 dark:text-amber-300 text-sm font-medium mb-1">⚠️ Some files couldn't be attached:</p>
-            <ul className="text-amber-600 dark:text-amber-400 text-xs space-y-0.5">
+          <div className="bg-paper-warning-muted border border-paper-warning/30 rounded-xl p-4 mb-4 chalk-frame">
+            <p className="text-paper-warning text-sm font-medium mb-1 flex items-center gap-2">
+              <ChalkWarning size={16} /> Some files couldn't be attached:
+            </p>
+            <ul className="text-paper-warning/80 text-xs space-y-0.5 ml-6">
               {attachmentErrors.map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
             </ul>
             <button
               onClick={() => setAttachmentErrors([])}
-              className="text-xs text-amber-500 mt-2 hover:underline"
+              className="text-xs text-paper-warning/70 mt-2 hover:underline"
             >
               Dismiss
             </button>
@@ -644,6 +660,10 @@ export default function Home() {
             visibleModels={visibleModels}
             selectedModels={selectedModels}
             onToggleModel={toggleModel}
+            sessionPrompt={sessionPrompt}
+            defaultPrompt={settings.orchestratorPrompt || DEFAULT_ORCHESTRATOR_PROMPT}
+            onSessionPromptChange={setSessionPrompt}
+            onSavePromptAsDefault={handleSavePromptAsDefault}
           />
         )}
 
@@ -706,10 +726,23 @@ export default function Home() {
                 isFollowUp={true}
                 onDownload={downloadZip}
                 onStartNew={startNew}
+                sessionPrompt={sessionPrompt}
+                defaultPrompt={settings.orchestratorPrompt || DEFAULT_ORCHESTRATOR_PROMPT}
+                onSessionPromptChange={setSessionPrompt}
+                onSavePromptAsDefault={handleSavePromptAsDefault}
               />
             </div>
           </div>
         )}
+
+        {/* ---- Footer ---- */}
+        <footer className="mt-12 pt-6 border-t border-paper-divider text-center text-xs text-paper-muted">
+          <a href="/terms" className="hover:text-paper-accent">Terms</a>
+          <span className="mx-2">·</span>
+          <a href="/privacy" className="hover:text-paper-accent">Privacy</a>
+          <span className="mx-2">·</span>
+          <a href="/refunds" className="hover:text-paper-accent">Refunds</a>
+        </footer>
       </div>
     </main>
   )

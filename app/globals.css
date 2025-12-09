@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Chalk-style frame for major UI containers */
+.chalk-frame {
+  border: 2px solid #91AAF2;
+  border-radius: 12px;
+  filter: url(#chalk);
+  box-shadow: 0 0 0 1px rgba(145, 170, 242, 0.1);
+}
+
+/* Lighter variant for nested elements */
+.chalk-frame-light {
+  border: 1px solid rgba(145, 170, 242, 0.3);
+  border-radius: 8px;
+  filter: url(#chalk);
+}

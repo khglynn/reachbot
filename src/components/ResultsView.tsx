@@ -14,6 +14,7 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { ResearchResult } from '@/types'
+import { ChalkSparkle } from './ChalkIcons'
 
 interface ResultsViewProps {
   /** All research rounds in this session */
@@ -124,8 +125,9 @@ export function ResultsView({ conversationHistory }: ResultsViewProps) {
           {/* Synthesis Card */}
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100">
-                ✨ Summary
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <ChalkSparkle size={18} className="text-yellow-500" />
+                Summary
               </h3>
               {result.totalCost !== undefined && result.totalCost > 0 && (
                 <span className="text-xs text-green-600 dark:text-green-400">

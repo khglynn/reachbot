@@ -10,8 +10,8 @@
 'use client'
 
 interface PillProps {
-  /** Icon to display (emoji or text) */
-  icon: string
+  /** Icon to display (emoji, text, or React component) */
+  icon: React.ReactNode
   /** Button label */
   label: string
   /** Click handler */

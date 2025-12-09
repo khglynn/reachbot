@@ -16,6 +16,7 @@ import {
   ORCHESTRATOR_OPTIONS,
   DEFAULT_ORCHESTRATOR_PROMPT,
 } from '@/config/models'
+import { ChalkSettings } from './ChalkIcons'
 
 interface SettingsModalProps {
   /** Current settings */
@@ -85,8 +86,9 @@ export function SettingsModal({ settings, onSave, onClose, byokMode }: SettingsM
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <ChalkSettings size={20} className="text-slate-600 dark:text-slate-300" />
             <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-              ⚙️ Settings
+              Settings
             </h2>
             {/* Save notification */}
             {showSaved && (

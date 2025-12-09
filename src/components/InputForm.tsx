@@ -15,10 +15,20 @@
 
 'use client'
 
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import type { ModelOption, Attachment } from '@/types'
 import { Pill } from './Pill'
 import { ModelAccordion } from './ModelAccordion'
+import {
+  ChalkAttach,
+  ChalkMic,
+  ChalkDownload,
+  ChalkLoading,
+  ChalkPlus,
+  ChalkChevronDown,
+  ChalkChevronRight,
+  ChalkClose,
+} from './ChalkIcons'
 import {
   MAX_ATTACHMENTS,
   SUPPORTED_EXTENSIONS,
@@ -64,6 +74,14 @@ interface InputFormProps {
   onDownload?: () => void
   /** Start new action for follow-up form */
   onStartNew?: () => void
+  /** Per-session prompt override (null = use default) */
+  sessionPrompt?: string | null
+  /** Default orchestrator prompt from settings */
+  defaultPrompt?: string
+  /** Update session prompt callback */
+  onSessionPromptChange?: (prompt: string | null) => void
+  /** Save prompt as new default callback */
+  onSavePromptAsDefault?: (prompt: string) => void
 }
 
 /**
@@ -105,8 +123,16 @@ export function InputForm({
   isFollowUp = false,
   onDownload,
   onStartNew,
+  sessionPrompt,
+  defaultPrompt = '',
+  onSessionPromptChange,
+  onSavePromptAsDefault,
 }: InputFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [promptExpanded, setPromptExpanded] = useState(false)
+
+  // Current effective prompt (session override or default)
+  const currentPrompt = sessionPrompt ?? defaultPrompt
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,13 +150,13 @@ export function InputForm({
 
   return (
     <form onSubmit={onSubmit}>
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="bg-paper-card rounded-xl border border-paper-accent/30 overflow-hidden chalk-frame">
         {/* Query Textarea */}
         <textarea
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full p-4 text-base resize-y border-0 focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 min-h-[120px] bg-transparent dark:text-slate-100 transition-opacity ${
+          className={`w-full p-4 text-base resize-y border-0 focus:ring-0 focus:outline-none placeholder:text-paper-muted min-h-[120px] bg-transparent text-paper-text transition-opacity ${
             isLoading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
           disabled={isLoading}
@@ -153,12 +179,12 @@ export function InputForm({
                     <img
                       src={previewUrl}
                       alt={attachment.name}
-                      className="h-16 w-16 object-cover rounded-lg border border-slate-300 dark:border-slate-600"
+                      className="h-16 w-16 object-cover rounded-lg border border-paper-accent/30"
                     />
                   ) : (
-                    <div className="h-16 w-16 flex flex-col items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700">
+                    <div className="h-16 w-16 flex flex-col items-center justify-center rounded-lg border border-paper-accent/30 bg-paper-deep">
                       <span className="text-xl">{getAttachmentIcon(attachment.type)}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate w-14 text-center">
+                      <span className="text-[10px] text-paper-muted truncate w-14 text-center">
                         {attachment.name.split('.').pop()?.toUpperCase()}
                       </span>
                     </div>
@@ -168,10 +194,10 @@ export function InputForm({
                   <button
                     type="button"
                     onClick={() => onRemoveAttachment(i)}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 bg-paper-error text-paper-deep rounded-full w-5 h-5 flex items-center justify-center hover:bg-paper-error/80 opacity-0 group-hover:opacity-100 transition-opacity"
                     aria-label={`Remove ${attachment.name}`}
                   >
-                    ×
+                    <ChalkClose size={12} />
                   </button>
 
                   {/* Filename tooltip on hover */}
@@ -185,7 +211,7 @@ export function InputForm({
         )}
 
         {/* Toolbar */}
-        <div className="border-t border-slate-100 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 space-y-3">
+        <div className="border-t border-paper-divider p-3 bg-paper-deep space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Follow-up actions */}
@@ -194,23 +220,23 @@ export function InputForm({
                   <button
                     type="button"
                     onClick={onDownload}
-                    className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    className="text-sm text-paper-muted hover:text-paper-text inline-flex items-center gap-1"
                   >
-                    💾 Download
+                    <ChalkDownload size={16} /> Download
                   </button>
                   <button
                     type="button"
                     onClick={onStartNew}
-                    className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    className="text-sm text-paper-muted hover:text-paper-text inline-flex items-center gap-1"
                   >
-                    ← New
+                    <ChalkPlus size={16} /> New
                   </button>
                 </>
               )}
 
               {/* Attach pill */}
               <Pill
-                icon="📎"
+                icon={<ChalkAttach size={16} />}
                 label={
                   attachments.length > 0
                     ? `${attachments.length}/${MAX_ATTACHMENTS}`
@@ -231,7 +257,7 @@ export function InputForm({
 
               {/* Voice pill */}
               <Pill
-                icon="🎤"
+                icon={<ChalkMic size={16} />}
                 label={isRecording ? 'Stop' : 'Voice'}
                 recording={isRecording}
                 onClick={isRecording ? onStopRecording : onStartRecording}
@@ -243,9 +269,9 @@ export function InputForm({
             <button
               type="submit"
               disabled={isLoading || !query.trim()}
-              className="px-5 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+              className="px-5 py-2 bg-paper-accent text-paper-deep rounded-lg font-medium hover:bg-paper-accent/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap inline-flex items-center gap-1.5"
             >
-              {isLoading ? '⏳ Working...' : submitLabel}
+              {isLoading ? <><ChalkLoading size={16} /> Working...</> : submitLabel}
             </button>
           </div>
 
@@ -255,6 +281,61 @@ export function InputForm({
             selectedModels={selectedModels}
             onToggleModel={onToggleModel}
           />
+
+          {/* Per-Session Prompt Editor */}
+          {onSessionPromptChange && (
+            <div className="border-t border-paper-divider pt-3">
+              <button
+                type="button"
+                onClick={() => setPromptExpanded(!promptExpanded)}
+                className="flex items-center gap-1 text-xs text-paper-muted hover:text-paper-text"
+              >
+                <span className="w-4">{promptExpanded ? <ChalkChevronDown size={14} /> : <ChalkChevronRight size={14} />}</span>
+                <span>{isFollowUp ? 'Customize context' : 'Customize summary prompt'}</span>
+                {sessionPrompt !== null && (
+                  <span className="ml-1 text-paper-accent text-[10px]">(modified)</span>
+                )}
+              </button>
+
+              {promptExpanded && (
+                <div className="mt-2 space-y-2">
+                  <textarea
+                    value={currentPrompt}
+                    onChange={(e) => onSessionPromptChange(e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-2 text-xs border border-paper-accent/30 rounded-lg bg-paper-bg text-paper-text font-mono resize-y placeholder:text-paper-muted"
+                    placeholder="Enter custom instructions for the summary..."
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-paper-muted">
+                      This session only
+                    </span>
+                    {onSavePromptAsDefault && sessionPrompt !== null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSavePromptAsDefault(currentPrompt)
+                          onSessionPromptChange(null) // Reset to default since default now equals session
+                        }}
+                        className="text-[10px] text-paper-accent hover:underline"
+                      >
+                        Save as default
+                      </button>
+                    )}
+                    {sessionPrompt !== null && (
+                      <button
+                        type="button"
+                        onClick={() => onSessionPromptChange(null)}
+                        className="text-[10px] text-paper-muted hover:text-paper-text"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </form>

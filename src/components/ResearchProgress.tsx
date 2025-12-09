@@ -11,6 +11,8 @@
 
 'use client'
 
+import { ChalkProgressBar } from './ChalkProgressBar'
+
 interface ResearchProgressProps {
   /** Models that have completed (success or error) */
   completedModels: string[]
@@ -58,12 +60,9 @@ export function ResearchProgress({
         </p>
       </div>
 
-      {/* Progress Bar */}
-      <div className="w-full bg-blue-800 rounded-full h-2 mb-3">
-        <div
-          className="bg-blue-400 h-2 rounded-full transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
+      {/* Chalk Progress Bar */}
+      <div className="mb-3 flex justify-center">
+        <ChalkProgressBar progress={progress} width={400} height={28} />
       </div>
 
       {/* Model Status Grid - always show */}
