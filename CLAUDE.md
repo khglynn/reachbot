@@ -8,6 +8,32 @@ A multi-model research orchestrator. Queries multiple AI models in parallel, the
 
 **Character:** Eachie is a friendly academic spider, drawn with chalk. She casts a wide net - weaving together responses from across the web into something more useful than any single source.
 
+## First Backend Project
+
+This is Kevin's first app built with Claude Code that has:
+- **Stored backend database** (Neon Postgres)
+- **Payment handling** (Stripe)
+- **User accounts** (Clerk)
+
+Because of this, we often go down rabbit holes on documentation and best practices. **This is expected and valuable.** The patterns we establish here become templates for future projects.
+
+### For Future Claude Instances
+
+When working on Eachie, consider:
+1. **Check `claude-plans/`** - Implementation roadmaps live here. Read them before starting related work.
+2. **Document decisions** - When we figure out a pattern (schema design, error handling, auth flow), capture it so future sessions don't re-derive it.
+3. **Flag learning moments** - If Kevin and Claude work through something tricky, suggest saving the approach to `~/.mux/src/HG-Skills-Public/hg-skills/` for reuse.
+4. **Analytics thinking** - For new features, ask: "What questions might we want to answer about this later?" Design data capture accordingly.
+
+### Tool Responsibilities
+
+| Tool | Primary Purpose |
+|------|-----------------|
+| **Database** | Transactional data, costs, model usage, user accounts |
+| **PostHog** | In-app behavior, funnels, session replays, traffic sources (Web Analytics) |
+| **Stripe** | Revenue, subscriptions, payment analytics |
+| **Canny** | Feature requests, user feedback |
+
 ## The Vibe
 
 Approachable academic. Eachie helps people do wide-ranging research by connecting points across different models and approaches. Not a power-user tool - a helpful research companion.
