@@ -137,3 +137,216 @@ CREATE TABLE IF NOT EXISTS system_state (
   value JSONB NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ============================================================
+-- ANALYTICS: RESEARCH QUERIES (Primary Fact Table)
+-- ============================================================
+-- Each row = one research query submitted.
+-- Atomic grain for query-level analytics.
+
+CREATE TABLE IF NOT EXISTS research_queries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Identity (who)
+  user_id VARCHAR(64) REFERENCES users(id),     -- NULL if anonymous
+  device_id VARCHAR(64),                         -- Always present
+  session_id UUID REFERENCES sessions(id),
+
+  -- Query details (what)
+  query_text TEXT NOT NULL,
+  query_length INTEGER,                          -- Character count
+  round_number INTEGER DEFAULT 1,                -- 1 = initial, 2+ = follow-up
+  is_follow_up BOOLEAN DEFAULT FALSE,
+
+  -- Model selection (configurable dimensions)
+  selected_model_ids TEXT[],                     -- Array: ['anthropic/claude-3.5-sonnet', ...]
+  orchestrator_id VARCHAR(100),                  -- Which model synthesized
+  model_count INTEGER,                           -- Quick count
+  used_default_models BOOLEAN,                   -- Did user customize?
+  used_default_orchestrator BOOLEAN,
+
+  -- Attachments (flexible for future file types)
+  has_attachments BOOLEAN DEFAULT FALSE,
+  attachment_count INTEGER DEFAULT 0,
+  attachment_extensions TEXT[],                  -- Array: ['.png', '.pdf', '.csv']
+  has_images BOOLEAN DEFAULT FALSE,              -- .png, .jpg, .gif, .webp
+  has_pdfs BOOLEAN DEFAULT FALSE,                -- .pdf
+  has_text_files BOOLEAN DEFAULT FALSE,          -- .txt, .md, .json
+  has_other_files BOOLEAN DEFAULT FALSE,         -- anything else
+
+  -- Results
+  success_count INTEGER,                         -- Models that succeeded
+  failure_count INTEGER,                         -- Models that failed
+  synthesis_text TEXT,                           -- Final synthesis
+
+  -- Error tracking (maps to messages.ts error codes)
+  error_code VARCHAR(50),                        -- e.g., 'RATE_LIMITED', 'ALL_MODELS_FAILED'
+  error_type VARCHAR(30),                        -- 'user_error', 'system_error', 'model_error'
+
+  -- Cost & Performance (key metrics)
+  total_cost_cents INTEGER,                      -- Total in cents
+  total_duration_ms INTEGER,                     -- Total time
+
+  -- Billing context
+  billing_type VARCHAR(20),                      -- 'free_tier', 'credits', 'byok'
+
+  -- Timestamps
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_research_queries_device ON research_queries(device_id);
+CREATE INDEX IF NOT EXISTS idx_research_queries_user ON research_queries(user_id);
+CREATE INDEX IF NOT EXISTS idx_research_queries_created ON research_queries(created_at);
+CREATE INDEX IF NOT EXISTS idx_research_queries_models ON research_queries USING GIN(selected_model_ids);
+
+-- ============================================================
+-- ANALYTICS: MODEL CALLS (Granular Fact Table)
+-- ============================================================
+-- Each row = one model's response within a research query.
+-- Atomic grain for model-level analytics.
+
+CREATE TABLE IF NOT EXISTS model_calls (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Link to parent query
+  research_query_id UUID REFERENCES research_queries(id) ON DELETE CASCADE,
+
+  -- Model identity (dimension keys)
+  model_id VARCHAR(100) NOT NULL,                -- e.g., 'anthropic/claude-3.5-sonnet:online'
+  model_name VARCHAR(100),                       -- Human-readable: 'Claude 3.5 Sonnet'
+  provider VARCHAR(50),                          -- 'Anthropic', 'OpenAI', etc.
+
+  -- Response
+  success BOOLEAN,
+  error_code VARCHAR(50),                        -- Standardized: 'TIMEOUT', 'RATE_LIMITED', etc.
+  error_message TEXT,                            -- Raw error text for debugging
+  response_text TEXT,
+
+  -- Performance metrics
+  duration_ms INTEGER,
+  prompt_tokens INTEGER,
+  completion_tokens INTEGER,
+  total_tokens INTEGER,
+
+  -- Cost
+  cost_cents INTEGER,                            -- Individual model cost
+
+  -- Model capabilities used
+  reasoning_mode VARCHAR(20),                    -- 'none', 'low', 'high', 'enabled'
+  used_vision BOOLEAN DEFAULT FALSE,
+  used_pdf BOOLEAN DEFAULT FALSE,
+
+  -- Timestamps
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_calls_query ON model_calls(research_query_id);
+CREATE INDEX IF NOT EXISTS idx_model_calls_model ON model_calls(model_id);
+CREATE INDEX IF NOT EXISTS idx_model_calls_provider ON model_calls(provider);
+CREATE INDEX IF NOT EXISTS idx_model_calls_created ON model_calls(created_at);
+
+-- ============================================================
+-- ANALYTICS: DIM_MODELS (Model Dimension)
+-- ============================================================
+-- Reference table for all available models.
+-- Auto-synced from MODEL_OPTIONS config via cron job.
+
+CREATE TABLE IF NOT EXISTS dim_models (
+  model_id VARCHAR(100) PRIMARY KEY,             -- e.g., 'anthropic/claude-sonnet-4.5:online'
+  model_name VARCHAR(100),                       -- 'Claude Sonnet 4.5'
+  provider VARCHAR(50),                          -- 'Anthropic'
+  description TEXT,
+  blended_cost NUMERIC(10,4),                    -- Blended cost per 1M tokens
+  supports_vision BOOLEAN DEFAULT FALSE,
+  reasoning_type VARCHAR(20),                    -- 'none', 'low', 'high', 'enabled'
+  is_default BOOLEAN DEFAULT FALSE,              -- Part of default selection?
+  is_orchestrator BOOLEAN DEFAULT FALSE,         -- Can be used as orchestrator?
+  is_active BOOLEAN DEFAULT TRUE,                -- Currently available?
+  added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  retired_at TIMESTAMP WITH TIME ZONE,
+  last_synced_at TIMESTAMP WITH TIME ZONE        -- When we last synced from config
+);
+
+-- ============================================================
+-- ANALYTICS: DIM_DATES (Date Dimension)
+-- ============================================================
+-- Pre-populated calendar table for time-based analysis.
+
+CREATE TABLE IF NOT EXISTS dim_dates (
+  date_key DATE PRIMARY KEY,
+  year INTEGER,
+  quarter INTEGER,
+  month INTEGER,
+  month_name VARCHAR(20),
+  week_of_year INTEGER,
+  day_of_week INTEGER,
+  day_name VARCHAR(20),
+  is_weekend BOOLEAN,
+  is_holiday BOOLEAN DEFAULT FALSE,
+  holiday_name VARCHAR(50)
+);
+
+-- ============================================================
+-- ANALYTICS: MODEL_CALLS_MONTHLY (Rollup Table)
+-- ============================================================
+-- Monthly aggregations for data older than 6 months.
+-- Created by scheduled rollup job.
+
+CREATE TABLE IF NOT EXISTS model_calls_monthly (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  month DATE,                                    -- First of month: '2024-12-01'
+  model_id VARCHAR(100),
+  model_name VARCHAR(100),
+  provider VARCHAR(50),
+
+  -- Aggregated metrics
+  total_calls INTEGER,
+  successful_calls INTEGER,
+  failed_calls INTEGER,
+  total_tokens_used BIGINT,
+  total_cost_cents INTEGER,
+  avg_duration_ms INTEGER,
+  p95_duration_ms INTEGER,                       -- 95th percentile response time
+
+  -- Error breakdown
+  timeout_count INTEGER,
+  rate_limit_count INTEGER,
+  auth_error_count INTEGER,
+  other_error_count INTEGER,
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_model_calls_monthly_key ON model_calls_monthly(month, model_id);
+
+-- ============================================================
+-- MIGRATIONS: Add analytics columns to existing tables
+-- ============================================================
+-- Run these if upgrading an existing database.
+
+-- Users: Add analytics tracking columns
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS first_query_at TIMESTAMP WITH TIME ZONE;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS last_query_at TIMESTAMP WITH TIME ZONE;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS total_queries INTEGER DEFAULT 0;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS total_cost_cents_analytics INTEGER DEFAULT 0;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS converted_from_free BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS conversion_date TIMESTAMP WITH TIME ZONE;
+
+-- ============================================================
+-- SEED DATA: Populate dim_dates (2024-2030)
+-- ============================================================
+-- Run once to populate the date dimension table.
+--
+-- INSERT INTO dim_dates (date_key, year, quarter, month, month_name, week_of_year, day_of_week, day_name, is_weekend)
+-- SELECT
+--   d::date,
+--   EXTRACT(YEAR FROM d),
+--   EXTRACT(QUARTER FROM d),
+--   EXTRACT(MONTH FROM d),
+--   TRIM(TO_CHAR(d, 'Month')),
+--   EXTRACT(WEEK FROM d),
+--   EXTRACT(DOW FROM d),
+--   TRIM(TO_CHAR(d, 'Day')),
+--   EXTRACT(DOW FROM d) IN (0, 6)
+-- FROM generate_series('2024-01-01'::date, '2030-12-31'::date, '1 day'::interval) d
+-- ON CONFLICT (date_key) DO NOTHING;

@@ -21,6 +21,12 @@ import {
 } from '@/config/models'
 import { calculateCost } from '@/lib/pricing'
 import { checkUsageAllowed, addAnonymousUsage } from '@/server/queries/usage'
+import {
+  createResearchQuery,
+  createModelCall,
+  updateResearchQuery,
+  type ResearchQueryRecord,
+} from '@/server/queries/analytics'
 
 export const runtime = 'nodejs'
 export const maxDuration = 800
@@ -148,6 +154,36 @@ export async function POST(request: NextRequest) {
           return
         }
 
+        // Create analytics record for this research query
+        let analyticsQueryId: string | undefined
+        if (process.env.DATABASE_URL && deviceId) {
+          try {
+            // Determine billing type
+            const billingType: 'free_tier' | 'credits' | 'byok' =
+              byokMode || apiKey ? 'byok' : 'free_tier'
+
+            // Extract attachment extensions
+            const attachmentExts = (attachments as Attachment[]).map(a => {
+              const name = a.name || ''
+              const dotIndex = name.lastIndexOf('.')
+              return dotIndex >= 0 ? name.slice(dotIndex).toLowerCase() : ''
+            }).filter(Boolean)
+
+            const record: ResearchQueryRecord = {
+              device_id: deviceId,
+              query_text: query,
+              selected_model_ids: models.map((m: ModelOption) => m.id),
+              orchestrator_id: synthesizerModelId,
+              attachment_extensions: attachmentExts,
+              billing_type: billingType,
+            }
+
+            analyticsQueryId = await createResearchQuery(record)
+          } catch (analyticsError) {
+            console.warn('[Research] Failed to create analytics record:', analyticsError)
+          }
+        }
+
         // Build messages for each model
         const buildMessages = (model: ModelOption) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -216,30 +252,85 @@ export async function POST(request: NextRequest) {
                   }
                 : undefined
 
+              const durationMs = Date.now() - modelStart
+              const cost = calculateCost(model.id, usage)
+
               const response: ModelResponse = {
                 model: model.name,
                 modelId: model.id,
                 content: result.text,
                 success: true,
-                durationMs: Date.now() - modelStart,
+                durationMs,
                 usage,
-                cost: calculateCost(model.id, usage),
+                cost,
               }
 
               responses.push(response)
               // Send event immediately when model completes
               sendEvent('model_complete', { model: model.name, success: true })
+
+              // Record model call in analytics
+              if (analyticsQueryId) {
+                try {
+                  await createModelCall({
+                    research_query_id: analyticsQueryId,
+                    model_id: model.id,
+                    model_name: model.name,
+                    provider: model.provider,
+                    success: true,
+                    response_text: result.text,
+                    duration_ms: durationMs,
+                    prompt_tokens: usage?.promptTokens,
+                    completion_tokens: usage?.completionTokens,
+                    total_tokens: usage?.totalTokens,
+                    cost_cents: cost ? Math.round(cost * 100) : undefined,
+                    reasoning_mode: model.reasoning || 'none',
+                    used_vision: hasImages && model.supportsVision,
+                    used_pdf: hasPdfs,
+                  })
+                } catch (e) {
+                  console.warn('[Research] Failed to record model call:', e)
+                }
+              }
             } catch (error) {
+              const durationMs = Date.now() - modelStart
+              const errorMessage = error instanceof Error ? error.message : String(error)
+
               const response: ModelResponse = {
                 model: model.name,
                 modelId: model.id,
                 content: '',
                 success: false,
-                error: error instanceof Error ? error.message : String(error),
-                durationMs: Date.now() - modelStart,
+                error: errorMessage,
+                durationMs,
               }
               responses.push(response)
               sendEvent('model_complete', { model: model.name, success: false })
+
+              // Record failed model call in analytics
+              if (analyticsQueryId) {
+                try {
+                  // Categorize error
+                  let errorCode = 'UNKNOWN'
+                  if (errorMessage.includes('timeout')) errorCode = 'TIMEOUT'
+                  else if (errorMessage.includes('rate limit')) errorCode = 'RATE_LIMITED'
+                  else if (errorMessage.includes('401') || errorMessage.includes('auth')) errorCode = 'AUTH_ERROR'
+
+                  await createModelCall({
+                    research_query_id: analyticsQueryId,
+                    model_id: model.id,
+                    model_name: model.name,
+                    provider: model.provider,
+                    success: false,
+                    error_code: errorCode,
+                    error_message: errorMessage,
+                    duration_ms: durationMs,
+                    reasoning_mode: model.reasoning || 'none',
+                  })
+                } catch (e) {
+                  console.warn('[Research] Failed to record model call error:', e)
+                }
+              }
             }
           })
         )
@@ -248,6 +339,21 @@ export async function POST(request: NextRequest) {
 
         // Handle complete failure
         if (successful.length === 0) {
+          // Update analytics for complete failure
+          if (analyticsQueryId) {
+            try {
+              await updateResearchQuery(analyticsQueryId, {
+                success_count: 0,
+                failure_count: responses.length,
+                error_code: 'ALL_MODELS_FAILED',
+                error_type: 'model_error',
+                total_duration_ms: Date.now() - startTime,
+              })
+            } catch (e) {
+              console.warn('[Research] Failed to update analytics:', e)
+            }
+          }
+
           const result: ResearchResult = {
             query,
             responses,
@@ -321,6 +427,21 @@ ${customPrompt}`
           } catch (dbError) {
             // Log but don't fail the request
             console.warn('[Research] Failed to record usage:', dbError)
+          }
+        }
+
+        // Update analytics record with final totals
+        if (analyticsQueryId) {
+          try {
+            await updateResearchQuery(analyticsQueryId, {
+              success_count: successful.length,
+              failure_count: responses.length - successful.length,
+              synthesis_text: synthesisResult.text,
+              total_cost_cents: Math.round(totalCost * 100),
+              total_duration_ms: Date.now() - startTime,
+            })
+          } catch (e) {
+            console.warn('[Research] Failed to update analytics:', e)
           }
         }
 
