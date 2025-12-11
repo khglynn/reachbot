@@ -15,7 +15,7 @@
 
 'use client'
 
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import type { ModelOption, Attachment } from '@/types'
 import { Pill } from './Pill'
 import { ModelAccordion } from './ModelAccordion'
@@ -34,6 +34,22 @@ import {
   createPreviewUrl,
   formatSize,
 } from '@/lib/attachments'
+
+/** Spider-themed placeholder messages */
+const PLACEHOLDER_MESSAGES = [
+  'What should we find on the web?',
+  'What threads should we follow?',
+  'What should we weave together?',
+  'What patterns are you looking for?',
+  'Where should we cast our net?',
+  'What strands should we pull together?',
+  "What's caught your curiosity?",
+  'What insights should we catch?',
+  'What questions are you tangled in?',
+  'Where should we crawl today?',
+  'What corners should we explore?',
+  'How should we connect the dots?',
+]
 
 interface InputFormProps {
   /** Current query text */
@@ -122,6 +138,16 @@ export function InputForm({
 }: InputFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [promptExpanded, setPromptExpanded] = useState(false)
+  const [randomPlaceholder, setRandomPlaceholder] = useState('')
+
+  // Pick a random placeholder on mount
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * PLACEHOLDER_MESSAGES.length)
+    setRandomPlaceholder(PLACEHOLDER_MESSAGES[randomIndex])
+  }, [])
+
+  // Use random placeholder for main form, passed placeholder for follow-ups
+  const effectivePlaceholder = isFollowUp ? placeholder : (randomPlaceholder || placeholder)
 
   // Current effective prompt (session override or default)
   const currentPrompt = sessionPrompt ?? defaultPrompt
@@ -147,7 +173,7 @@ export function InputForm({
         <textarea
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
           className={`w-full p-4 text-base resize-y border-0 focus:ring-0 focus:outline-none placeholder:text-paper-muted min-h-[120px] bg-transparent text-paper-text transition-opacity ${
             isLoading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
