@@ -13,7 +13,7 @@ Work that's done. Newest at top.
 - ✅ Environment tagging for PostHog (`$environment` super property)
 - ✅ Clerk theme updated to purple palette
 - ✅ eachie.me domain added to Vercel (307 redirect → eachie.ai)
-- ⏳ eachie.me DNS pending (needs Cloudflare A record)
+- ✅ eachie.me DNS configured (A record → 76.76.21.21)
 
 ---
 
