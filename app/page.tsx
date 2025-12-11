@@ -646,22 +646,17 @@ export default function Home() {
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
         {/* ---- Header ---- */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-end gap-1">
-            {/* Chalk wordmark */}
-            <img
-              src="/eachie-wordmark.png"
-              alt="Eachie"
-              className="h-12 sm:h-16"
-              loading="eager"
-              role="img"
-            />
-            {/* Spider mascot - like a period at the end */}
+          <div className="flex items-end">
+            {/* Logo: "eachie" in Fascinate font + spider as period */}
+            <span className="font-fascinate text-4xl sm:text-5xl text-paper-text tracking-tight leading-none">
+              eachie
+            </span>
             <img
               src="/eachie-spider.png"
-              alt="Eachie spider mascot"
-              className="h-[18px] sm:h-[22px] w-auto object-contain mb-0.5 sm:mb-1"
+              alt=""
+              className="h-[14px] sm:h-[18px] w-auto object-contain ml-0.5 mb-1 sm:mb-1.5 opacity-80"
               loading="eager"
-              role="img"
+              aria-hidden="true"
             />
           </div>
           <div className="flex items-center gap-2">

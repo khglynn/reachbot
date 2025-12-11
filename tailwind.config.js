@@ -7,16 +7,19 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        fascinate: ['var(--font-fascinate)', 'system-ui', 'sans-serif'],
+      },
       colors: {
-        // Royal blue chalk palette
+        // Deep purple chalk palette
         paper: {
           // Core palette (dark to light)
-          bg: '#020F59',           // Primary background (deepest navy)
-          card: '#021373',         // Card backgrounds (deep navy)
-          surface: '#03178C',      // Elevated surfaces, highlights
-          accent: '#91AAF2',       // Accents, borders, links
+          bg: '#0D0221',           // Primary background (deep plum)
+          card: '#1A0533',         // Card backgrounds (rich purple)
+          surface: '#2D1054',      // Elevated surfaces, highlights
+          accent: '#9F7AEA',       // Accents, borders, links (muted violet)
           text: '#F2F2F2',         // Primary text
-          muted: '#8BA3E6',        // Secondary/muted text
+          muted: '#A78BFA',        // Secondary/muted text (soft purple)
 
           // Semantic: Success (green family)
           success: '#4ADE80',      // Main green
@@ -31,14 +34,14 @@ module.exports = {
           'warning-muted': '#78350F', // Dark amber bg
 
           // UI States
-          hover: 'rgba(145, 170, 242, 0.15)',  // Accent with transparency
-          active: 'rgba(145, 170, 242, 0.25)', // Stronger accent
+          hover: 'rgba(159, 122, 234, 0.15)',  // Accent with transparency
+          active: 'rgba(159, 122, 234, 0.25)', // Stronger accent
           disabled: '#4B5563',     // Grayed out elements
-          divider: 'rgba(145, 170, 242, 0.2)', // Subtle lines
+          divider: 'rgba(159, 122, 234, 0.2)', // Subtle lines
 
           // Legacy (keeping for gradual migration)
-          border: '#91AAF2',  // Mapped to accent
-          light: '#91AAF2',   // Mapped to accent
+          border: '#9F7AEA',  // Mapped to accent
+          light: '#9F7AEA',   // Mapped to accent
         },
       },
     },

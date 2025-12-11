@@ -1,6 +1,15 @@
 import type { Metadata } from 'next'
+import { Fascinate } from 'next/font/google'
 import { Providers } from './providers'
 import './globals.css'
+
+// Fascinate font for the logo
+export const fascinate = Fascinate({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-fascinate',
+})
 
 export const metadata: Metadata = {
   title: 'Eachie - Multi-Model AI Research',
@@ -21,10 +30,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${fascinate.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <meta name="theme-color" content="#020F59" />
+        <meta name="theme-color" content="#0D0221" />
       </head>
       <body className="antialiased bg-paper-bg min-h-screen">
         <Providers clerkEnabled={!!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
