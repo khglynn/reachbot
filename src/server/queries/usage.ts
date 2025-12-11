@@ -11,6 +11,34 @@
 
 import { getDb } from '../db'
 
+// ============================================================
+// SLACK NOTIFICATIONS
+// ============================================================
+
+/** Threshold for super_admin spending alerts (in cents) */
+const SUPER_ADMIN_ALERT_THRESHOLD_CENTS = 5000 // $50
+
+/**
+ * Send a Slack notification for super_admin spending alerts.
+ */
+async function sendSlackAlert(message: string): Promise<void> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL
+  if (!webhookUrl) {
+    console.warn('[Slack] No SLACK_WEBHOOK_URL configured, skipping alert:', message)
+    return
+  }
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: message }),
+    })
+  } catch (error) {
+    console.error('[Slack] Failed to send alert:', error)
+  }
+}
+
 /** Free tier limit in cents ($12.00) */
 export const FREE_TIER_LIMIT_CENTS = 1200
 
@@ -114,20 +142,22 @@ interface User {
   name: string
   credits_cents: number
   total_spent_cents: number
+  is_super_admin: boolean
 }
 
 /**
- * Get user's credit balance.
+ * Get user's credit balance and admin status.
  * Returns null if user doesn't exist.
  */
 export async function getUserCredits(userId: string): Promise<{
   creditsCents: number
   totalSpentCents: number
+  isSuperAdmin: boolean
 } | null> {
   const sql = getDb()
 
   const result = await sql`
-    SELECT credits_cents, total_spent_cents
+    SELECT credits_cents, total_spent_cents, is_super_admin
     FROM users
     WHERE id = ${userId}
   ` as User[]
@@ -137,12 +167,14 @@ export async function getUserCredits(userId: string): Promise<{
   return {
     creditsCents: result[0].credits_cents,
     totalSpentCents: result[0].total_spent_cents,
+    isSuperAdmin: result[0].is_super_admin ?? false,
   }
 }
 
 /**
  * Deduct credits from user after a research query.
- * Returns false if insufficient credits.
+ * Super admins: track spending but don't deduct credits, alert if > $50.
+ * Regular users: deduct from balance, return false if insufficient.
  *
  * @param userId - Clerk user ID
  * @param costCents - Cost in cents
@@ -158,12 +190,37 @@ export async function deductUserCredits(
 }> {
   const sql = getDb()
 
-  // Check current balance first
+  // Check current balance and admin status
   const current = await getUserCredits(userId)
   if (!current) {
     return { success: false, creditsCents: 0, message: 'User not found' }
   }
 
+  // Super admins: track spending but don't deduct credits
+  if (current.isSuperAdmin) {
+    const result = await sql`
+      UPDATE users
+      SET total_spent_cents = total_spent_cents + ${costCents}
+      WHERE id = ${userId}
+      RETURNING total_spent_cents, email
+    ` as Array<{ total_spent_cents: number; email: string }>
+
+    const newTotal = result[0]?.total_spent_cents ?? 0
+    const previousTotal = newTotal - costCents
+
+    // Alert if crossed $50 threshold
+    if (previousTotal < SUPER_ADMIN_ALERT_THRESHOLD_CENTS && newTotal >= SUPER_ADMIN_ALERT_THRESHOLD_CENTS) {
+      const email = result[0]?.email ?? 'unknown'
+      sendSlackAlert(`🚨 Super admin ${email} has spent $${(newTotal / 100).toFixed(2)} this period`)
+    }
+
+    return {
+      success: true,
+      creditsCents: current.creditsCents, // Unchanged for super admins
+    }
+  }
+
+  // Regular users: check balance and deduct
   if (current.creditsCents < costCents) {
     return {
       success: false,
@@ -222,6 +279,7 @@ export async function addUserCredits(
 
 export type UsageCheckResult =
   | { allowed: true; source: 'byok' }
+  | { allowed: true; source: 'super_admin'; totalSpent: number }
   | { allowed: true; source: 'anonymous'; remaining: number }
   | { allowed: true; source: 'credits'; remaining: number }
   | { allowed: false; reason: 'free_tier_exhausted' }
@@ -340,9 +398,15 @@ export async function checkUsageAllowed(params: {
     return { allowed: true, source: 'byok' }
   }
 
-  // Authenticated user - check credits (no rate limits for paid users)
+  // Authenticated user - check super_admin first, then credits
   if (userId) {
     const credits = await getUserCredits(userId)
+
+    // Super admins bypass credit checks entirely
+    if (credits?.isSuperAdmin) {
+      return { allowed: true, source: 'super_admin', totalSpent: credits.totalSpentCents }
+    }
+
     if (!credits || credits.creditsCents <= 0) {
       return {
         allowed: false,

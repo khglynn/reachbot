@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(255),
   credits_cents INTEGER DEFAULT 0,          -- Purchased credits balance
   total_spent_cents INTEGER DEFAULT 0,      -- Lifetime spend
+  is_super_admin BOOLEAN DEFAULT FALSE,     -- Bypass credit checks, track spending
   stripe_customer_id VARCHAR(64),
   stripe_payment_method_id VARCHAR(64),     -- Saved card for auto top-up
   -- Auto top-up settings
