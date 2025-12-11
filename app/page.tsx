@@ -128,7 +128,9 @@ export default function Home() {
 
     // Restore query if going back to input
     if (state.stage === 'input') {
-      const q = state.query || state.originalQuery || ''
+      // Priority: history state > localStorage draft
+      const savedDraft = localStorage.getItem('eachie_draft_query')
+      const q = state.query || state.originalQuery || savedDraft || ''
       queryRef.current = q
       setQuery(q)
     }
