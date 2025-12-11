@@ -47,6 +47,8 @@ export function useBrowserHistory({
   /**
    * Push current state to browser history.
    * Called when stage changes.
+   *
+   * Also updates URL query params so state survives page refresh.
    */
   const pushState = useCallback(
     (newStage: Stage, extraState?: Partial<HistoryState>) => {
@@ -55,8 +57,20 @@ export function useBrowserHistory({
         historyLength,
         ...extraState,
       }
+
+      // Build URL with query params to survive refresh
+      const url = new URL(window.location.href)
+
+      // Preserve query in URL during research (so refresh works)
+      if (extraState?.query) {
+        url.searchParams.set('q', extraState.query)
+      } else if ((newStage === 'input' || newStage === 'results') && !extraState?.query) {
+        // Clear query param when returning to empty input or after results
+        url.searchParams.delete('q')
+      }
+
       // Only push if we're moving forward in the flow
-      window.history.pushState(state, '', window.location.pathname)
+      window.history.pushState(state, '', url.toString())
     },
     [historyLength]
   )
@@ -72,7 +86,8 @@ export function useBrowserHistory({
         historyLength,
         ...extraState,
       }
-      window.history.replaceState(state, '', window.location.pathname)
+      // Keep existing URL (preserve query params like ?q= and ?byok=)
+      window.history.replaceState(state, '', window.location.href)
     },
     [historyLength]
   )

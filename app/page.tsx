@@ -13,7 +13,7 @@
 
 'use client'
 
-import { useState, useCallback, useEffect, useTransition, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { usePostHog } from 'posthog-js/react'
 import type { Stage, ResearchResult, ModelOption, HistoryState, Attachment } from '@/types'
 import { MODEL_OPTIONS, DEFAULT_MODELS, DEFAULT_ORCHESTRATOR_PROMPT } from '@/config/models'
@@ -56,26 +56,16 @@ export default function Home() {
   const [attachmentErrors, setAttachmentErrors] = useState<string[]>([])
 
   /**
-   * Query refs solve a timing issue with useTransition:
-   *
-   * Problem: useTransition batches state updates for smoother rendering,
-   * but this means the state value isn't immediately available after a set call.
-   * When the user submits the form, we need the *current* query value synchronously.
-   *
-   * Solution: Maintain parallel refs that update synchronously.
-   * - queryRef.current = immediate value (for form submission)
-   * - setQueryRaw via startTransition = batched value (for rendering)
-   *
-   * This pattern is necessary for INP optimization while keeping form submission accurate.
+   * Query refs provide immediate access to query values for form submission.
+   * The state value might be slightly behind during rapid typing.
    */
   const queryRef = useRef('')
   const followUpQueryRef = useRef('')
 
-  // Use transition for non-blocking query updates (fixes INP issue)
-  const [, startTransition] = useTransition()
+  // Direct state updates (removed useTransition - it caused cursor jumping)
   const setQuery = useCallback((value: string) => {
-    queryRef.current = value // Sync update for form submission
-    startTransition(() => setQueryRaw(value)) // Async update for rendering
+    queryRef.current = value
+    setQueryRaw(value)
   }, [])
 
   // ---- Model Selection ----
@@ -94,10 +84,10 @@ export default function Home() {
   // ---- Per-Session Prompt Override (not persisted to localStorage) ----
   const [sessionPrompt, setSessionPrompt] = useState<string | null>(null)
 
-  // Non-blocking follow-up query updates
+  // Direct state updates for follow-up (removed useTransition - it caused cursor jumping)
   const setFollowUpQuery = useCallback((value: string) => {
-    followUpQueryRef.current = value // Sync update for form submission
-    startTransition(() => setFollowUpQueryRaw(value))
+    followUpQueryRef.current = value
+    setFollowUpQueryRaw(value)
   }, [])
 
   // ---- Progress Tracking (NEW) ----
@@ -112,10 +102,17 @@ export default function Home() {
   // INITIALIZATION
   // ============================================================
 
-  // Check for BYOK mode from URL parameter
+  // Check for BYOK mode and restore query from URL parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setByokMode(params.get('byok') === 'true')
+
+    // Restore query from URL if present (survives page refresh)
+    const urlQuery = params.get('q')
+    if (urlQuery) {
+      queryRef.current = urlQuery
+      setQuery(urlQuery)
+    }
   }, [])
 
   // ============================================================
@@ -369,6 +366,8 @@ export default function Home() {
     // This keeps results visible during follow-up loading
     if (!isFollowUp) {
       setStage('research')
+      // Store query in URL so it survives page refresh
+      pushState('research', { query: finalQuery })
     }
 
     // Set up progress tracking
@@ -456,6 +455,12 @@ export default function Home() {
               } else if (eventType === 'complete') {
                 // Final result
                 const result: ResearchResult = data.result
+                console.log('[Eachie] Research complete, result:', {
+                  hasResult: !!result,
+                  hasSynthesis: !!result?.synthesis,
+                  synthesisLength: result?.synthesis?.length,
+                  responseCount: result?.responses?.length,
+                })
                 setConversationHistory((prev) => [...prev, result])
                 setStage('results')
                 pushState('results')
