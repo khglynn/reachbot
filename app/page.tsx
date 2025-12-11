@@ -68,8 +68,17 @@ export default function Home() {
     setQueryRaw(value)
   }, [])
 
-  // ---- Model Selection ----
-  const [selectedModels, setSelectedModels] = useState<string[]>(DEFAULT_MODELS)
+  // ---- Model Selection (persisted to localStorage) ----
+  const [selectedModels, setSelectedModelsRaw] = useState<string[]>(DEFAULT_MODELS)
+
+  // Wrapper to persist model selections
+  const setSelectedModels = useCallback((models: string[] | ((prev: string[]) => string[])) => {
+    setSelectedModelsRaw(prev => {
+      const newModels = typeof models === 'function' ? models(prev) : models
+      localStorage.setItem('eachie_selected_models', JSON.stringify(newModels))
+      return newModels
+    })
+  }, [])
 
   // ---- Clarifying Questions ----
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([])
@@ -102,10 +111,23 @@ export default function Home() {
   // INITIALIZATION
   // ============================================================
 
-  // Check for BYOK mode and restore query from URL or localStorage
+  // Check for BYOK mode and restore query/models from URL or localStorage
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setByokMode(params.get('byok') === 'true')
+
+    // Restore model selections from localStorage
+    const savedModels = localStorage.getItem('eachie_selected_models')
+    if (savedModels) {
+      try {
+        const models = JSON.parse(savedModels)
+        if (Array.isArray(models) && models.length > 0) {
+          setSelectedModelsRaw(models)
+        }
+      } catch {
+        // Invalid JSON, use defaults
+      }
+    }
 
     // Priority: URL param > localStorage draft
     const urlQuery = params.get('q')
@@ -454,12 +476,24 @@ export default function Home() {
               } else if (eventType === 'complete') {
                 // Final result
                 const result: ResearchResult = data.result
+                console.log('[Eachie] SSE complete received:', JSON.stringify(data).slice(0, 500))
                 console.log('[Eachie] Research complete, result:', {
                   hasResult: !!result,
                   hasSynthesis: !!result?.synthesis,
                   synthesisLength: result?.synthesis?.length,
                   responseCount: result?.responses?.length,
                 })
+
+                // Defensive check for empty synthesis (bug investigation)
+                if (!result?.synthesis) {
+                  console.error('[Eachie] EMPTY SYNTHESIS BUG:', {
+                    fullData: data,
+                    result,
+                    dataType: typeof data,
+                    resultType: typeof result
+                  })
+                }
+
                 setConversationHistory((prev) => [...prev, result])
                 setStage('results')
                 pushState('results')
