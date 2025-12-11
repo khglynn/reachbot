@@ -5,20 +5,21 @@ What's next, in order. When done, move to `COMPLETED.md`.
 ---
 
 ## 1. Settings Page
-**Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 4)
+**Plan:** `claude-plans/2024-12-11-settings-page-foundation.md`
 
 User settings UI - foundation for everything below.
 
-**What:**
-- Account info (email from Clerk, sign out)
-- Payment method management (view/update)
-- Auto top-up settings (threshold, amount)
-- Data retention preference
-- Referral code section (placeholder until #5)
+**Sections:**
+- **Account** - email, sign out, export data, delete data
+- **Payment** - balance, Stripe portal, auto top-up (BYOK: "Upgrade to Eachie Me" CTA)
+- **Research Preferences** - orchestrator, prompt, model visibility (migrated from SettingsModal)
+- **Referrals** - placeholder for friend codes
 
 **Files to create:**
-- `app/settings/page.tsx`
-- `src/components/SettingsSection.tsx`
+- `app/settings/page.tsx` + `loading.tsx`
+- `app/api/user/settings/route.ts`
+- `app/api/user/billing-portal/route.ts`
+- `src/components/settings/` (6 components)
 
 ---
 
