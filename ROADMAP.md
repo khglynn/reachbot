@@ -100,3 +100,14 @@ Growth feature - both parties get $6 when code redeemed.
 | Feature | Plan |
 |---------|------|
 | Storybook Component Library | `claude-plans/2024-12-10-storybook-component-library.md` |
+
+---
+
+## Optional Infrastructure
+
+Services we've evaluated but haven't implemented. Consider when needs arise.
+
+| Service | What | When to Consider |
+|---------|------|------------------|
+| **Cloudflare Turnstile** | Privacy-friendly CAPTCHA (free) | If bot abuse becomes a problem on forms/API |
+| **Cloudflare Email Routing** | Forward hello@eachie.ai → Gmail (free) | When we need a support email address |
