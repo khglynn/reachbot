@@ -217,6 +217,36 @@ export function verifyWebhookSignature(
 }
 
 // ============================================================
+// CREDIT PACKAGES (for UpgradePrompt)
+// ============================================================
+
+export interface CreditPackage {
+  id: string
+  name: string
+  credits_cents: number  // Credits in cents
+  price_cents: number    // Price in cents
+  bonus?: number         // Bonus percentage
+  popular?: boolean
+}
+
+/**
+ * Available credit packages for purchase.
+ */
+export const CREDIT_PACKAGES: CreditPackage[] = [
+  { id: 'starter', name: 'Starter', credits_cents: 500, price_cents: 500 },           // $5 = $5 credits
+  { id: 'basic', name: 'Basic', credits_cents: 1200, price_cents: 1000, bonus: 20 },  // $10 = $12 credits (20% bonus)
+  { id: 'plus', name: 'Plus', credits_cents: 3000, price_cents: 2000, bonus: 50, popular: true }, // $20 = $30 credits (50% bonus)
+  { id: 'pro', name: 'Pro', credits_cents: 7500, price_cents: 5000, bonus: 50 },      // $50 = $75 credits (50% bonus)
+]
+
+/**
+ * Get bonus percentage for a package.
+ */
+export function getBonusPercent(pkg: CreditPackage): number {
+  return pkg.bonus ?? 0
+}
+
+// ============================================================
 // DEFAULTS
 // ============================================================
 
