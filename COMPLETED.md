@@ -6,6 +6,22 @@ Work that's done. Newest at top.
 
 ## December 2024
 
+### Bug Fixes & Super Admin
+**Completed:** Dec 11, 2024
+**Plan:** `claude-plans/2024-12-11-bug-fixes.md`
+
+- ✅ Fixed blank results page (missing OPENROUTER_API_KEY in Vercel)
+- ✅ Fixed query clears on refresh (localStorage draft persistence)
+- ✅ Fixed cursor jumping to end (removed useTransition)
+- ✅ Fixed back button not restoring query (localStorage fallback)
+- ✅ Changed default models: Claude Haiku, Gemini 2.5 Flash, Grok Fast
+- ✅ Added `is_super_admin` role (bypasses credit checks, tracks spending)
+- ✅ kevin@trimm.co marked as super_admin
+- ✅ Slack alert ready for $50+ super_admin spending (needs webhook)
+- ✅ Removed phone number requirement from Clerk sign-in
+
+---
+
 ### Production Environment Setup
 **Completed:** Dec 11, 2024
 
