@@ -156,6 +156,31 @@ export const MESSAGES = {
   },
 
   // ============================================================
+  // OPENROUTER-SPECIFIC ERRORS
+  // ============================================================
+
+  openrouterCreditsExhausted: {
+    id: 'openrouter_credits_exhausted',
+    title: 'Service temporarily unavailable',
+    body: 'Our API credits are being replenished. Please try again in a few minutes.',
+    type: 'banner' as MessageType,
+  },
+
+  openrouterRateLimited: {
+    id: 'openrouter_rate_limited',
+    title: 'Too many requests',
+    body: 'Please wait a moment before trying again.',
+    type: 'toast' as MessageType,
+  },
+
+  openrouterQuotaExceeded: {
+    id: 'openrouter_quota_exceeded',
+    title: 'Model temporarily unavailable',
+    body: 'This model has reached its usage limit. Try a different model.',
+    type: 'toast' as MessageType,
+  },
+
+  // ============================================================
   // GENERAL
   // ============================================================
 
@@ -200,6 +225,10 @@ export const ERROR_CODE_MESSAGES: Record<string, keyof typeof MESSAGES> = {
   API_KEY_INVALID: 'apiKeyInvalid',
   ALL_MODELS_FAILED: 'allModelsFailed',
   NETWORK_ERROR: 'networkError',
+  // OpenRouter-specific errors
+  openrouter_credits_exhausted: 'openrouterCreditsExhausted',
+  openrouter_rate_limited: 'openrouterRateLimited',
+  openrouter_quota_exceeded: 'openrouterQuotaExceeded',
 }
 
 /**

@@ -205,6 +205,8 @@ export interface ModelResponse {
   success: boolean
   /** Error message if failed */
   error?: string
+  /** Specific error code (e.g., 'openrouter_credits_exhausted') */
+  errorCode?: string
   /** How long this model took to respond (ms) */
   durationMs?: number
   /** Token usage for cost calculation */

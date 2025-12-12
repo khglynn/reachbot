@@ -15,16 +15,22 @@ import { getDb } from '../db'
 // SLACK NOTIFICATIONS
 // ============================================================
 
-/** Threshold for super_admin spending alerts (in cents) */
-const SUPER_ADMIN_ALERT_THRESHOLD_CENTS = 5000 // $50
+/** Default credits for admins (in cents) */
+const ADMIN_DEFAULT_CREDITS_CENTS = 4800 // $48
+
+/** Low balance threshold for admin alerts (in cents) */
+const ADMIN_LOW_BALANCE_CENTS = 800 // $8
+
+/** Max credits an admin can have (safety cap) */
+const ADMIN_MAX_CREDITS_CENTS = ADMIN_DEFAULT_CREDITS_CENTS + ADMIN_LOW_BALANCE_CENTS // $56
 
 /**
- * Send a Slack notification for super_admin spending alerts.
+ * Send a Slack notification to #eachie-money channel.
  */
 async function sendSlackAlert(message: string): Promise<void> {
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL
+  const webhookUrl = process.env.SLACK_EACHIE_MONEY_WEBHOOK_URL
   if (!webhookUrl) {
-    console.warn('[Slack] No SLACK_WEBHOOK_URL configured, skipping alert:', message)
+    console.warn('[Slack] No SLACK_EACHIE_MONEY_WEBHOOK_URL configured, skipping alert:', message)
     return
   }
 
@@ -36,6 +42,61 @@ async function sendSlackAlert(message: string): Promise<void> {
     })
   } catch (error) {
     console.error('[Slack] Failed to send alert:', error)
+  }
+}
+
+/**
+ * Send a Slack notification with an interactive button.
+ * Used for admin low-balance alerts with top-up action.
+ */
+async function sendSlackAlertWithButton(params: {
+  text: string
+  buttonText: string
+  buttonValue: string
+}): Promise<void> {
+  const webhookUrl = process.env.SLACK_EACHIE_MONEY_WEBHOOK_URL
+  if (!webhookUrl) {
+    console.warn('[Slack] No webhook configured, skipping alert:', params.text)
+    return
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eachie.ai'
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: params.text,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: params.text,
+            },
+          },
+          {
+            type: 'actions',
+            elements: [
+              {
+                type: 'button',
+                text: {
+                  type: 'plain_text',
+                  text: params.buttonText,
+                  emoji: true,
+                },
+                value: params.buttonValue,
+                action_id: 'admin_topup',
+                url: `${appUrl}/api/admin/topup?email=${encodeURIComponent(params.buttonValue.replace('topup:', ''))}`,
+              },
+            ],
+          },
+        ],
+      }),
+    })
+  } catch (error) {
+    console.error('[Slack] Failed to send alert with button:', error)
   }
 }
 
@@ -173,8 +234,9 @@ export async function getUserCredits(userId: string): Promise<{
 
 /**
  * Deduct credits from user after a research query.
- * Super admins: track spending but don't deduct credits, alert if > $50.
- * Regular users: deduct from balance, return false if insufficient.
+ * All users (including super_admins) deduct from balance and are blocked at $0.
+ * Admins get a Slack alert when balance drops below $8.
+ * Alerts to Slack if deduction fails unexpectedly (for monitoring).
  *
  * @param userId - Clerk user ID
  * @param costCents - Cost in cents
@@ -188,69 +250,76 @@ export async function deductUserCredits(
   creditsCents: number
   message?: string
 }> {
-  const sql = getDb()
+  try {
+    const sql = getDb()
 
-  // Check current balance and admin status
-  const current = await getUserCredits(userId)
-  if (!current) {
-    return { success: false, creditsCents: 0, message: 'User not found' }
-  }
+    // Check current balance and admin status
+    const current = await getUserCredits(userId)
+    if (!current) {
+      return { success: false, creditsCents: 0, message: 'User not found' }
+    }
 
-  // Super admins: track spending but don't deduct credits
-  if (current.isSuperAdmin) {
+    // Check balance (same for all users)
+    if (current.creditsCents < costCents) {
+      return {
+        success: false,
+        creditsCents: current.creditsCents,
+        message: 'Insufficient credits',
+      }
+    }
+
+    // Deduct credits and add to total spent
     const result = await sql`
       UPDATE users
-      SET total_spent_cents = total_spent_cents + ${costCents}
-      WHERE id = ${userId}
-      RETURNING total_spent_cents, email
-    ` as Array<{ total_spent_cents: number; email: string }>
+      SET
+        credits_cents = credits_cents - ${costCents},
+        total_spent_cents = total_spent_cents + ${costCents}
+      WHERE id = ${userId} AND credits_cents >= ${costCents}
+      RETURNING credits_cents, email, is_super_admin
+    ` as Array<{ credits_cents: number; email: string; is_super_admin: boolean }>
 
-    const newTotal = result[0]?.total_spent_cents ?? 0
-    const previousTotal = newTotal - costCents
+    if (result.length === 0) {
+      // Race condition: balance changed between check and update
+      // This is expected occasionally, but log it for monitoring
+      console.warn(`[Billing] Race condition: user ${userId} balance changed during deduction`)
+      return {
+        success: false,
+        creditsCents: current.creditsCents,
+        message: 'Insufficient credits',
+      }
+    }
 
-    // Alert if crossed $50 threshold
-    if (previousTotal < SUPER_ADMIN_ALERT_THRESHOLD_CENTS && newTotal >= SUPER_ADMIN_ALERT_THRESHOLD_CENTS) {
-      const email = result[0]?.email ?? 'unknown'
-      sendSlackAlert(`🚨 Super admin ${email} has spent $${(newTotal / 100).toFixed(2)} this period`)
+    const newBalance = result[0].credits_cents
+    const previousBalance = newBalance + costCents
+
+    // Admin low-balance alert (only when crossing $8 threshold)
+    // Currently is_super_admin, can expand to other admin types later
+    const isAdmin = result[0].is_super_admin
+    if (
+      isAdmin &&
+      previousBalance >= ADMIN_LOW_BALANCE_CENTS &&
+      newBalance < ADMIN_LOW_BALANCE_CENTS
+    ) {
+      const email = result[0].email
+      sendSlackAlertWithButton({
+        text: `💸 Admin *${email}* is running low: *$${(newBalance / 100).toFixed(2)}* remaining.`,
+        buttonText: '💰 Top Up to $48',
+        buttonValue: `topup:${email}`,
+      })
     }
 
     return {
       success: true,
-      creditsCents: current.creditsCents, // Unchanged for super admins
+      creditsCents: newBalance,
     }
-  }
-
-  // Regular users: check balance and deduct
-  if (current.creditsCents < costCents) {
-    return {
-      success: false,
-      creditsCents: current.creditsCents,
-      message: 'Insufficient credits',
-    }
-  }
-
-  // Deduct credits and add to total spent
-  const result = await sql`
-    UPDATE users
-    SET
-      credits_cents = credits_cents - ${costCents},
-      total_spent_cents = total_spent_cents + ${costCents}
-    WHERE id = ${userId} AND credits_cents >= ${costCents}
-    RETURNING credits_cents
-  ` as User[]
-
-  if (result.length === 0) {
-    // Race condition: balance changed between check and update
-    return {
-      success: false,
-      creditsCents: current.creditsCents,
-      message: 'Insufficient credits',
-    }
-  }
-
-  return {
-    success: true,
-    creditsCents: result[0].credits_cents,
+  } catch (error) {
+    // Alert on unexpected database errors - this indicates billing is broken
+    console.error('[Billing] Credit deduction failed:', error)
+    sendSlackAlert(
+      `🚨 BILLING ERROR: Credit deduction failed for user ${userId}. ` +
+        `Amount: $${(costCents / 100).toFixed(2)}. Check logs!`
+    )
+    throw error // Re-throw so caller knows it failed
   }
 }
 
@@ -273,13 +342,214 @@ export async function addUserCredits(
   return { creditsCents: result[0]?.credits_cents ?? 0 }
 }
 
+/**
+ * Top up an admin account to $48, capped at $56 max.
+ * Used by Slack button to refill admin credits.
+ *
+ * @param email - Admin's email address
+ * @returns Result with new balance or error
+ */
+export async function topUpAdmin(email: string): Promise<{
+  success: boolean
+  creditsCents?: number
+  message: string
+}> {
+  const sql = getDb()
+
+  // Check if user exists and is admin
+  const user = await sql`
+    SELECT id, email, credits_cents, is_super_admin
+    FROM users
+    WHERE email = ${email}
+  ` as Array<{ id: string; email: string; credits_cents: number; is_super_admin: boolean }>
+
+  if (user.length === 0) {
+    return { success: false, message: `User ${email} not found` }
+  }
+
+  if (!user[0].is_super_admin) {
+    return { success: false, message: `${email} is not an admin` }
+  }
+
+  const currentBalance = user[0].credits_cents
+
+  // Already at or above max
+  if (currentBalance >= ADMIN_MAX_CREDITS_CENTS) {
+    return {
+      success: false,
+      creditsCents: currentBalance,
+      message: `${email} already at max ($${(currentBalance / 100).toFixed(2)})`,
+    }
+  }
+
+  // Top up to $48, but cap at $56
+  const targetBalance = Math.min(ADMIN_DEFAULT_CREDITS_CENTS, ADMIN_MAX_CREDITS_CENTS)
+  const newBalance = Math.min(
+    Math.max(currentBalance, targetBalance), // At least get to $48
+    ADMIN_MAX_CREDITS_CENTS // But never exceed $56
+  )
+
+  const result = await sql`
+    UPDATE users
+    SET credits_cents = ${newBalance}
+    WHERE id = ${user[0].id}
+    RETURNING credits_cents
+  ` as Array<{ credits_cents: number }>
+
+  const finalBalance = result[0]?.credits_cents ?? newBalance
+  const added = finalBalance - currentBalance
+
+  // Notify Slack of successful top-up
+  sendSlackAlert(
+    `✅ Topped up ${email}: $${(currentBalance / 100).toFixed(2)} → $${(finalBalance / 100).toFixed(2)} (+$${(added / 100).toFixed(2)})`
+  )
+
+  return {
+    success: true,
+    creditsCents: finalBalance,
+    message: `Topped up ${email} to $${(finalBalance / 100).toFixed(2)}`,
+  }
+}
+
+/**
+ * Make a user an admin and give them $48 credits.
+ *
+ * @param email - User's email address
+ * @returns Result with success status
+ */
+export async function makeAdmin(email: string): Promise<{
+  success: boolean
+  message: string
+}> {
+  const sql = getDb()
+
+  // Check if user exists
+  const user = await sql`
+    SELECT id, email, is_super_admin, credits_cents
+    FROM users
+    WHERE email = ${email}
+  ` as Array<{ id: string; email: string; is_super_admin: boolean; credits_cents: number }>
+
+  if (user.length === 0) {
+    return { success: false, message: `User ${email} not found. They need to sign up first.` }
+  }
+
+  if (user[0].is_super_admin) {
+    return { success: false, message: `${email} is already an admin` }
+  }
+
+  // Make admin and set credits to $48
+  await sql`
+    UPDATE users
+    SET is_super_admin = true, credits_cents = ${ADMIN_DEFAULT_CREDITS_CENTS}
+    WHERE id = ${user[0].id}
+  `
+
+  // Notify Slack
+  sendSlackAlert(`👑 New admin: ${email} (given $48 credits)`)
+
+  return {
+    success: true,
+    message: `${email} is now an admin with $48 credits`,
+  }
+}
+
+/**
+ * Get a user's current status (balance, spend, admin).
+ *
+ * @param email - User's email address
+ * @returns User status or error
+ */
+export async function getUserStatus(email: string): Promise<{
+  success: boolean
+  message: string
+  data?: {
+    email: string
+    balance: number
+    spent: number
+    isAdmin: boolean
+  }
+}> {
+  const sql = getDb()
+
+  const user = await sql`
+    SELECT email, credits_cents, total_spent_cents, is_super_admin
+    FROM users
+    WHERE email = ${email}
+  ` as Array<{ email: string; credits_cents: number; total_spent_cents: number; is_super_admin: boolean }>
+
+  if (user.length === 0) {
+    return { success: false, message: `User ${email} not found` }
+  }
+
+  const u = user[0]
+  return {
+    success: true,
+    message: `${u.email}: $${(u.credits_cents / 100).toFixed(2)} balance, $${(u.total_spent_cents / 100).toFixed(2)} spent${u.is_super_admin ? ' (admin)' : ''}`,
+    data: {
+      email: u.email,
+      balance: u.credits_cents / 100,
+      spent: u.total_spent_cents / 100,
+      isAdmin: u.is_super_admin,
+    },
+  }
+}
+
+/**
+ * Get all admin stats (balances and spending).
+ *
+ * @returns Summary of all admin accounts
+ */
+export async function getAdminStats(): Promise<{
+  success: boolean
+  message: string
+  admins: Array<{ email: string; balance: number; spent: number }>
+}> {
+  const sql = getDb()
+
+  const admins = await sql`
+    SELECT email, credits_cents, total_spent_cents
+    FROM users
+    WHERE is_super_admin = true
+    ORDER BY total_spent_cents DESC
+  ` as Array<{ email: string; credits_cents: number; total_spent_cents: number }>
+
+  if (admins.length === 0) {
+    return { success: true, message: 'No admins found', admins: [] }
+  }
+
+  const totalSpent = admins.reduce((sum, a) => sum + a.total_spent_cents, 0)
+  const totalBalance = admins.reduce((sum, a) => sum + a.credits_cents, 0)
+
+  const lines = admins.map(
+    (a) => `• ${a.email}: $${(a.credits_cents / 100).toFixed(2)} bal, $${(a.total_spent_cents / 100).toFixed(2)} spent`
+  )
+
+  const summary = [
+    `*Admin Stats* (${admins.length} admins)`,
+    `Total balance: $${(totalBalance / 100).toFixed(2)}`,
+    `Total spent: $${(totalSpent / 100).toFixed(2)}`,
+    '',
+    ...lines,
+  ].join('\n')
+
+  return {
+    success: true,
+    message: summary,
+    admins: admins.map((a) => ({
+      email: a.email,
+      balance: a.credits_cents / 100,
+      spent: a.total_spent_cents / 100,
+    })),
+  }
+}
+
 // ============================================================
 // USAGE CHECK (Pre-query validation)
 // ============================================================
 
 export type UsageCheckResult =
   | { allowed: true; source: 'byok' }
-  | { allowed: true; source: 'super_admin'; totalSpent: number }
   | { allowed: true; source: 'anonymous'; remaining: number }
   | { allowed: true; source: 'credits'; remaining: number }
   | { allowed: false; reason: 'free_tier_exhausted' }
@@ -398,14 +668,9 @@ export async function checkUsageAllowed(params: {
     return { allowed: true, source: 'byok' }
   }
 
-  // Authenticated user - check super_admin first, then credits
+  // Authenticated user - check credits (same logic for all users including super_admin)
   if (userId) {
     const credits = await getUserCredits(userId)
-
-    // Super admins bypass credit checks entirely
-    if (credits?.isSuperAdmin) {
-      return { allowed: true, source: 'super_admin', totalSpent: credits.totalSpentCents }
-    }
 
     if (!credits || credits.creditsCents <= 0) {
       return {
@@ -445,6 +710,36 @@ export async function checkUsageAllowed(params: {
 
   // No device ID - shouldn't happen, but deny
   return { allowed: false, reason: 'free_tier_exhausted' }
+}
+
+// ============================================================
+// RECONCILIATION
+// ============================================================
+
+/**
+ * Get total spent across all Eachie users.
+ * Used for reconciliation with OpenRouter actual charges.
+ */
+export async function getEachieTotals(): Promise<{
+  totalSpentCents: number
+  totalCreditsCents: number
+  userCount: number
+}> {
+  const sql = getDb()
+
+  const result = await sql`
+    SELECT
+      COALESCE(SUM(total_spent_cents), 0) as total_spent,
+      COALESCE(SUM(credits_cents), 0) as total_credits,
+      COUNT(*) as user_count
+    FROM users
+  ` as Array<{ total_spent: number; total_credits: number; user_count: number }>
+
+  return {
+    totalSpentCents: Number(result[0]?.total_spent ?? 0),
+    totalCreditsCents: Number(result[0]?.total_credits ?? 0),
+    userCount: Number(result[0]?.user_count ?? 0),
+  }
 }
 
 // ============================================================

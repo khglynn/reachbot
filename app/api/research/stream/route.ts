@@ -9,6 +9,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { ResearchResult, ModelResponse, ModelOption, Attachment } from '@/types'
@@ -20,7 +21,7 @@ import {
   DEFAULT_ORCHESTRATOR_PROMPT,
 } from '@/config/models'
 import { calculateCost, fetchGenerationStats, estimateCostFromText } from '@/lib/pricing'
-import { checkUsageAllowed, addAnonymousUsage } from '@/server/queries/usage'
+import { checkUsageAllowed, addAnonymousUsage, deductUserCredits } from '@/server/queries/usage'
 import {
   createResearchQuery,
   createModelCall,
@@ -30,6 +31,53 @@ import {
 
 export const runtime = 'nodejs'
 export const maxDuration = 800
+
+// OpenRouter-specific error codes
+const OPENROUTER_ERRORS = {
+  CREDIT_EXHAUSTED: 'openrouter_credits_exhausted',
+  RATE_LIMITED: 'openrouter_rate_limited',
+  QUOTA_EXCEEDED: 'openrouter_quota_exceeded',
+} as const
+
+/**
+ * Parse OpenRouter-specific error from error message.
+ * Returns error code or null if not an OpenRouter error.
+ */
+function parseOpenRouterError(errorMessage: string): string | null {
+  const msg = errorMessage.toLowerCase()
+
+  if (msg.includes('insufficient credits') || msg.includes('credit balance') || msg.includes('no credits')) {
+    return OPENROUTER_ERRORS.CREDIT_EXHAUSTED
+  }
+  if (msg.includes('rate limit')) {
+    return OPENROUTER_ERRORS.RATE_LIMITED
+  }
+  if (msg.includes('quota') || msg.includes('limit exceeded')) {
+    return OPENROUTER_ERRORS.QUOTA_EXCEEDED
+  }
+  return null
+}
+
+/**
+ * Send urgent Slack alert for OpenRouter credit exhaustion.
+ */
+async function sendOpenRouterCreditAlert(): Promise<void> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_EACHIE_MONEY
+  if (!webhookUrl) return
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: '🚨 URGENT: OpenRouter credits exhausted! Users seeing errors.\n' +
+          'Top up at: https://openrouter.ai/account',
+      }),
+    })
+  } catch (error) {
+    console.error('[Research] Failed to send credit alert:', error)
+  }
+}
 
 const RESEARCH_SYSTEM_PROMPT = `You are an expert research assistant with built-in web search.
 
@@ -70,6 +118,9 @@ export async function POST(request: NextRequest) {
         // Get device ID from header (for anonymous usage tracking)
         const deviceId = request.headers.get('X-Device-ID') || undefined
 
+        // Get authenticated user ID (if signed in)
+        const { userId } = await auth()
+
         // Check usage limits (skip if BYOK - no cost to us)
         // Only check if DATABASE_URL is configured (graceful degradation)
         if (process.env.DATABASE_URL && !byokMode && !apiKey) {
@@ -77,6 +128,7 @@ export async function POST(request: NextRequest) {
             const usageCheck = await checkUsageAllowed({
               byokMode: false,
               deviceId,
+              userId: userId ?? undefined,
             })
 
             if (!usageCheck.allowed) {
@@ -335,25 +387,40 @@ export async function POST(request: NextRequest) {
               const durationMs = Date.now() - modelStart
               const errorMessage = error instanceof Error ? error.message : String(error)
 
+              // Check for OpenRouter-specific errors
+              const orError = parseOpenRouterError(errorMessage)
+
+              // Send urgent alert for credit exhaustion (only once per request)
+              if (orError === OPENROUTER_ERRORS.CREDIT_EXHAUSTED && !byokMode) {
+                // Fire and forget - don't block the response
+                sendOpenRouterCreditAlert()
+              }
+
               const response: ModelResponse = {
                 model: model.name,
                 modelId: model.id,
                 content: '',
                 success: false,
                 error: errorMessage,
+                errorCode: orError || undefined,
                 durationMs,
               }
               responses.push(response)
-              sendEvent('model_complete', { model: model.name, success: false })
+              sendEvent('model_complete', {
+                model: model.name,
+                success: false,
+                errorCode: orError || undefined,
+              })
 
               // Record failed model call in analytics
               if (analyticsQueryId) {
                 try {
-                  // Categorize error
-                  let errorCode = 'UNKNOWN'
-                  if (errorMessage.includes('timeout')) errorCode = 'TIMEOUT'
-                  else if (errorMessage.includes('rate limit')) errorCode = 'RATE_LIMITED'
-                  else if (errorMessage.includes('401') || errorMessage.includes('auth')) errorCode = 'AUTH_ERROR'
+                  // Categorize error (prefer OpenRouter error code)
+                  let errorCode = orError || 'UNKNOWN'
+                  if (!orError) {
+                    if (errorMessage.includes('timeout')) errorCode = 'TIMEOUT'
+                    else if (errorMessage.includes('401') || errorMessage.includes('auth')) errorCode = 'AUTH_ERROR'
+                  }
 
                   await createModelCall({
                     research_query_id: analyticsQueryId,
@@ -494,6 +561,16 @@ ${customPrompt}`
           } catch (dbError) {
             // Log but don't fail the request
             console.warn('[Research] Failed to record usage:', dbError)
+          }
+        }
+
+        // Deduct credits for authenticated users (handles super_admin tracking)
+        if (process.env.DATABASE_URL && userId && !byokMode && totalCost > 0) {
+          try {
+            const costCents = Math.round(totalCost * 100)
+            await deductUserCredits(userId, costCents)
+          } catch (dbError) {
+            console.warn('[Research] Failed to deduct user credits:', dbError)
           }
         }
 

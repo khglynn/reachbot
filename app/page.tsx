@@ -26,6 +26,7 @@ import {
   ResearchProgress,
   HelpModal,
   Footer,
+  ErrorBanner,
 } from '@/components'
 import Link from 'next/link'
 import { ChalkSettings, ChalkError, ChalkWarning, ChalkQuestion, ChalkDownload, ChalkPlus } from '@/components/ChalkIcons'
@@ -51,6 +52,7 @@ export default function Home() {
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [stage, setStage] = useState<Stage>('input')
   const [error, setError] = useState<string | null>(null)
+  const [errorCode, setErrorCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [attachmentErrors, setAttachmentErrors] = useState<string[]>([])
 
@@ -380,6 +382,7 @@ export default function Home() {
   const runFullResearch = async (finalQuery: string, isFollowUp = false) => {
     setIsLoading(true)
     setError(null)
+    setErrorCode(null)
     setResearchPhase('querying')
 
     // Only change stage to 'research' for initial queries (not follow-ups)
@@ -520,7 +523,10 @@ export default function Home() {
                   setFollowUpAttachments([])
                 }
               } else if (eventType === 'error') {
-                throw new Error(data.message)
+                // Create error with code attached for better user messages
+                const err = new Error(data.message)
+                ;(err as Error & { code?: string }).code = data.code
+                throw err
               }
             } catch (parseErr) {
               // Ignore JSON parse errors for incomplete data
@@ -532,7 +538,9 @@ export default function Home() {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Research failed'
+      const errCode = (err as Error & { code?: string })?.code || null
       setError(errorMessage)
+      setErrorCode(errCode)
 
       // GRACEFUL FAILURE: Restore query for editing
       if (!isFollowUp) {
@@ -660,6 +668,7 @@ export default function Home() {
     setClarifyingQuestions([])
     setAnswers([])
     setError(null)
+    setErrorCode(null)
     setSessionPrompt(null) // Reset session prompt on new session
     pushState('input')
   }
@@ -719,17 +728,14 @@ export default function Home() {
 
         {/* ---- Error Banner ---- */}
         {error && (
-          <div className="bg-paper-error-muted border border-paper-error/30 rounded-xl p-4 mb-4 chalk-frame">
-            <p className="text-paper-error text-sm flex items-center gap-2">
-              <ChalkError size={16} /> {error}
-            </p>
-            <button
-              onClick={() => setError(null)}
-              className="text-xs text-paper-error/70 mt-1 hover:underline"
-            >
-              Dismiss
-            </button>
-          </div>
+          <ErrorBanner
+            error={error}
+            errorCode={errorCode || undefined}
+            onDismiss={() => {
+              setError(null)
+              setErrorCode(null)
+            }}
+          />
         )}
 
         {/* ---- Attachment Errors ---- */}
