@@ -146,11 +146,17 @@ export default function Home() {
   // ============================================================
 
   const handleNavigateBack = useCallback((state: HistoryState) => {
+    // Safety: if stage is 'results' but no history, reset to input
+    // This prevents blank page when browser history state is stale
+    const safeStage = (state.stage === 'results' && state.historyLength === 0)
+      ? 'input'
+      : state.stage
+
     // Restore stage
-    setStage(state.stage)
+    setStage(safeStage)
 
     // Restore query if going back to input
-    if (state.stage === 'input') {
+    if (safeStage === 'input') {
       // Priority: history state > localStorage draft
       const savedDraft = localStorage.getItem('eachie_draft_query')
       const q = state.query || state.originalQuery || savedDraft || ''
