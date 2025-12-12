@@ -10,7 +10,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useClerk, UserButton } from '@clerk/nextjs'
+import { useClerk } from '@clerk/nextjs'
 import { ChalkDownload } from '@/components/ChalkIcons'
 import type { UserSettings } from '@/types'
 
@@ -34,7 +34,7 @@ export function AccountSection({
   onExport,
   isLoading,
 }: AccountSectionProps) {
-  const { signOut } = useClerk()
+  const { signOut, openUserProfile } = useClerk()
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   const handleSignOut = async () => {
@@ -84,20 +84,7 @@ export function AccountSection({
     <div className="space-y-4">
       {/* Account Info */}
       <div className="space-y-2">
-        {/* Profile Access */}
         <div className="flex items-center justify-between py-2">
-          <span className="text-sm text-paper-muted">Profile</span>
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: 'w-7 h-7',
-                userButtonTrigger: 'text-paper-text hover:text-paper-accent transition-colors',
-              },
-            }}
-            afterSignOutUrl="/"
-          />
-        </div>
-        <div className="flex items-center justify-between py-2 border-t border-paper-divider">
           <span className="text-sm text-paper-muted">Email</span>
           <span className="text-sm text-paper-text">{settings.email}</span>
         </div>
@@ -129,6 +116,16 @@ export function AccountSection({
 
       {/* Actions */}
       <div className="pt-2 space-y-3">
+        {/* Manage Profile - opens Clerk modal */}
+        <button
+          onClick={() => openUserProfile()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm
+            bg-paper-bg border border-paper-accent/30 rounded-lg
+            text-paper-text hover:border-paper-accent/60 transition-colors"
+        >
+          Manage Profile & Login
+        </button>
+
         {/* Export Data */}
         <button
           onClick={onExport}

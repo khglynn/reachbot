@@ -4,14 +4,14 @@
  * Creates a Stripe Billing Portal session for the user to manage
  * their payment methods and billing info.
  *
- * Requires authentication and a Stripe customer ID.
+ * If user has no Stripe customer, creates one first.
  *
  * Created: December 2024
  */
 
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { getUser } from '@/server/queries/users'
+import { getUser, setStripeCustomerId } from '@/server/queries/users'
 import { getStripe } from '@/lib/stripe'
 
 export async function POST() {
@@ -31,18 +31,25 @@ export async function POST() {
       )
     }
 
-    if (!user.stripe_customer_id) {
-      return NextResponse.json(
-        { error: 'No payment method on file', code: 'NO_CUSTOMER' },
-        { status: 400 }
-      )
-    }
-
     const stripe = getStripe()
+    let stripeCustomerId = user.stripe_customer_id
+
+    // Create Stripe customer if doesn't exist
+    if (!stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.name || undefined,
+        metadata: {
+          clerk_user_id: userId,
+        },
+      })
+      stripeCustomerId = customer.id
+      await setStripeCustomerId(userId, stripeCustomerId)
+    }
 
     // Create a billing portal session
     const session = await stripe.billingPortal.sessions.create({
-      customer: user.stripe_customer_id,
+      customer: stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings`,
     })
 

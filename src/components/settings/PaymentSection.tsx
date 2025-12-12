@@ -73,7 +73,7 @@ export function PaymentSection({
     }
   }, [saveTimeout])
 
-  // Open Stripe billing portal
+  // Open Stripe billing portal (creates customer if needed)
   const handleManagePayment = async () => {
     setIsOpeningPortal(true)
     try {
@@ -83,10 +83,6 @@ export function PaymentSection({
 
       if (!response.ok) {
         const data = await response.json()
-        if (data.code === 'NO_CUSTOMER') {
-          alert('No payment method on file. Please add credits first.')
-          return
-        }
         throw new Error(data.error || 'Failed to open billing portal')
       }
 
@@ -269,13 +265,21 @@ export function PaymentSection({
             )}
           </span>
         </div>
-        {settings.hasStripeCustomer && (
+        {settings.hasStripeCustomer ? (
           <button
             onClick={handleManagePayment}
             disabled={isOpeningPortal}
             className="text-sm text-paper-accent hover:underline disabled:opacity-50"
           >
             {isOpeningPortal ? 'Opening...' : 'Manage payment method'}
+          </button>
+        ) : (
+          <button
+            onClick={handleManagePayment}
+            disabled={isOpeningPortal}
+            className="text-sm text-paper-accent hover:underline disabled:opacity-50"
+          >
+            {isOpeningPortal ? 'Opening...' : 'Add payment method'}
           </button>
         )}
       </div>
@@ -300,7 +304,7 @@ export function PaymentSection({
             }
             disabled={!settings.hasPaymentMethod}
             className={`relative w-12 h-6 rounded-full transition-colors ${
-              settings.autoTopup.enabled
+              settings.autoTopup.enabled && settings.hasPaymentMethod
                 ? 'bg-paper-accent'
                 : 'bg-paper-surface'
             } ${!settings.hasPaymentMethod ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -308,7 +312,7 @@ export function PaymentSection({
           >
             <span
               className={`absolute top-1 w-4 h-4 bg-paper-text rounded-full transition-transform ${
-                settings.autoTopup.enabled ? 'left-7' : 'left-1'
+                settings.autoTopup.enabled && settings.hasPaymentMethod ? 'left-7' : 'left-1'
               }`}
             />
           </button>

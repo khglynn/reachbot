@@ -167,12 +167,12 @@ export function SettingsPage() {
 
           {/* Payment Section (API - inline loading) */}
           <SettingsSection
-            title="How You Pay"
+            title="Billing"
             icon={<ChalkDollar size={20} />}
             description={
               isByok
-                ? 'Eachie Free — using your own API key'
-                : 'Eachie Me — balance-based billing'
+                ? 'Eachie Free: using your own API key'
+                : 'Eachie Me: balance-based billing'
             }
           >
             <PaymentSection

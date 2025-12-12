@@ -4,12 +4,12 @@
  * Footer
  *
  * Shared footer component for all pages.
- * Includes legal links, auth button, and feature request link.
+ * Includes legal links, sign-in for guests, and feature request link.
  *
  * Created: December 2024
  */
 
-import { AuthButton } from './AuthButton'
+import { SignedOut, SignInButton } from '@clerk/nextjs'
 
 export function Footer() {
   return (
@@ -20,7 +20,11 @@ export function Footer() {
         <a href="/privacy" className="hover:text-paper-accent">Privacy</a>
       </div>
       <div className="flex items-center gap-4">
-        <AuthButton />
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="hover:text-paper-accent">Sign in</button>
+          </SignInButton>
+        </SignedOut>
         <a
           href="https://eachie.canny.io/feature-requests"
           target="_blank"
