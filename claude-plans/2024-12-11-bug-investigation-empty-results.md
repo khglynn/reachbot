@@ -74,3 +74,28 @@ Instead of silent failure, show user-friendly error message.
 **Minimal fix:** Push the model persistence code that's already written. Add one console.log to help debug if it happens again.
 
 **Later:** If bug recurs, we'll have more data to investigate.
+
+---
+
+## Dec 12, 2024 Update
+
+### Bug Recurred
+- Same symptom: blank results page
+- New finding: DB showed `synthesis_text: null` for a failed follow-up query
+- Server started but didn't complete synthesis - no error captured
+
+### Fixes Implemented
+1. **Fallback UI** - If `stage='results'` but `conversationHistory` empty, show "Something went wrong" with retry button
+2. **Safe stage reset** - `handleNavigateBack` now resets to 'input' if state is invalid
+3. **SSE event logging** - Every SSE event now logged: `[Eachie] SSE event: {type}`
+4. **DB error column** - Added `error_message` column to `research_queries` table
+
+### Still TODO
+- Server needs to actually write to `error_message` column on failure
+- Requires capturing `queryId` after INSERT and updating on error
+- ~20 line change for another session
+
+### Commits
+- `9c67eba` - Fix blank page when navigating back from results
+- `68cd21a` - Add fallback UI for empty results state
+- `4a57731` - Add SSE event logging to debug stream issues
