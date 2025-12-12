@@ -147,7 +147,7 @@ export function ClarifyingQuestions({
                 type="text"
                 readOnly
                 onClick={() => setPromptExpanded(true)}
-                placeholder={sessionPrompt !== null ? "Custom" : "Default"}
+                placeholder={sessionPrompt !== null ? "Yes, customized" : "No, use default"}
                 className="w-full px-3 py-2 border border-paper-accent/30 rounded-lg text-sm bg-paper-bg text-paper-muted placeholder:text-paper-muted cursor-pointer hover:border-paper-accent/50"
               />
             )}
