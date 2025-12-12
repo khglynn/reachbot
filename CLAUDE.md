@@ -72,6 +72,20 @@ Warm, clear, curious. Educational without being condescending. Eachie genuinely 
 - TailwindCSS
 - Vercel Fluid Compute (long timeouts for deep research)
 
+## Dev Server
+
+**Uses Turbopack** (Rust-based bundler) for faster dev mode and fewer cache issues.
+
+```bash
+npm run dev        # Turbopack (default, faster)
+npm run dev:webpack # Webpack (fallback if Turbo has issues)
+npm run dev:fresh  # Clear .next cache + restart with Turbo
+```
+
+**If the dev server breaks** (404s on `_next/static/*`, blank pages):
+1. First try hard refresh: `Cmd+Shift+R`
+2. If that doesn't work: `npm run dev:fresh`
+
 ## Integrations
 
 | Service | Purpose | Status |

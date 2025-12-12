@@ -75,3 +75,6 @@ Sentry.init({
     return event
   },
 });
+
+// Capture client-side navigation for Sentry tracing (Next.js 15+)
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
