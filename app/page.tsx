@@ -25,10 +25,10 @@ import {
   ResultsView,
   ResearchProgress,
   HelpModal,
+  Footer,
 } from '@/components'
 import Link from 'next/link'
 import { ChalkSettings, ChalkError, ChalkWarning, ChalkQuestion, ChalkDownload, ChalkPlus } from '@/components/ChalkIcons'
-import { AuthButton } from '@/components/AuthButton'
 
 // ============================================================
 // MAIN COMPONENT
@@ -860,19 +860,7 @@ export default function Home() {
         )}
 
         {/* ---- Footer ---- */}
-        <footer className="mt-6 text-xs text-paper-muted flex items-center justify-between">
-          <div>
-            <a href="/terms" className="hover:text-paper-accent">Terms</a>
-            <span className="mx-2">·</span>
-            <a href="/privacy" className="hover:text-paper-accent">Privacy</a>
-          </div>
-          <div className="flex items-center gap-4">
-            <AuthButton />
-            <a href="https://eachie.canny.io/feature-requests" target="_blank" rel="noopener noreferrer" className="hover:text-paper-accent">
-              Request a Feature
-            </a>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </main>
   )

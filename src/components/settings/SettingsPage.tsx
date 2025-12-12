@@ -24,6 +24,7 @@ import {
   ChalkGift,
   ChalkArrowLeft,
 } from '@/components/ChalkIcons'
+import { Footer } from '@/components'
 import type { UserSettings } from '@/types'
 
 /**
@@ -212,15 +213,7 @@ export function SettingsPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center text-xs text-paper-muted">
-          <a href="/privacy" className="hover:text-paper-accent">
-            Privacy Policy
-          </a>
-          {' · '}
-          <a href="/terms" className="hover:text-paper-accent">
-            Terms of Service
-          </a>
-        </div>
+        <Footer />
       </div>
     </div>
   )
