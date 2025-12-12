@@ -10,7 +10,8 @@
 
 'use client'
 
-import { ChalkChat, ChalkArrowRight, ChalkLoading } from './ChalkIcons'
+import { ChalkChat, ChalkArrowRight, ChalkLoading, ChalkChevronDown, ChalkChevronRight } from './ChalkIcons'
+import { useState } from 'react'
 
 interface ClarifyingQuestionsProps {
   /** Questions to display */
@@ -25,6 +26,14 @@ interface ClarifyingQuestionsProps {
   onSkip: () => void
   /** Whether form is disabled (loading) */
   isLoading: boolean
+  /** Current session prompt (null = using default) */
+  sessionPrompt: string | null
+  /** Default prompt from settings */
+  defaultPrompt: string
+  /** Update session prompt */
+  onSessionPromptChange: (value: string | null) => void
+  /** Save current prompt as default */
+  onSavePromptAsDefault: (value: string) => void
 }
 
 /**
@@ -47,7 +56,13 @@ export function ClarifyingQuestions({
   onSubmit,
   onSkip,
   isLoading,
+  sessionPrompt,
+  defaultPrompt,
+  onSessionPromptChange,
+  onSavePromptAsDefault,
 }: ClarifyingQuestionsProps) {
+  const [promptExpanded, setPromptExpanded] = useState(false)
+
   return (
     <form onSubmit={onSubmit}>
       <div className="bg-paper-card rounded-xl border border-paper-accent/30 overflow-hidden chalk-frame">
@@ -75,6 +90,68 @@ export function ClarifyingQuestions({
               />
             </div>
           ))}
+
+          {/* Customize Summary Prompt (styled like a question) */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setPromptExpanded(!promptExpanded)}
+              className="block text-sm font-medium text-paper-text mb-1 text-left w-full hover:text-paper-accent transition-colors"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {promptExpanded ? <ChalkChevronDown size={14} /> : <ChalkChevronRight size={14} />}
+                {questions.length + 1}. Any specific instructions for the summary?
+              </span>
+            </button>
+
+            {promptExpanded ? (
+              <div className="space-y-2">
+                <textarea
+                  value={sessionPrompt ?? defaultPrompt}
+                  onChange={(e) => onSessionPromptChange(e.target.value)}
+                  rows={5}
+                  className="w-full px-3 py-2 text-xs border border-paper-accent/30 rounded-lg bg-paper-bg text-paper-text font-mono resize-y placeholder:text-paper-muted"
+                  placeholder="Customize how the summary is generated..."
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-paper-muted">
+                    This session only
+                  </span>
+                  <div className="flex items-center gap-3">
+                    {sessionPrompt !== null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSavePromptAsDefault(sessionPrompt ?? defaultPrompt)
+                          onSessionPromptChange(null)
+                        }}
+                        className="text-[10px] text-paper-accent hover:underline"
+                      >
+                        Save as default
+                      </button>
+                    )}
+                    {sessionPrompt !== null && (
+                      <button
+                        type="button"
+                        onClick={() => onSessionPromptChange(null)}
+                        className="text-[10px] text-paper-muted hover:text-paper-text"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <input
+                type="text"
+                readOnly
+                onClick={() => setPromptExpanded(true)}
+                placeholder={sessionPrompt !== null ? "Custom" : "Default"}
+                className="w-full px-3 py-2 border border-paper-accent/30 rounded-lg text-sm bg-paper-bg text-paper-muted placeholder:text-paper-muted cursor-pointer hover:border-paper-accent/50"
+              />
+            )}
+          </div>
         </div>
 
         {/* Footer */}

@@ -23,8 +23,6 @@ import {
   ChalkAttach,
   ChalkMic,
   ChalkLoading,
-  ChalkChevronDown,
-  ChalkChevronRight,
   ChalkClose,
 } from './ChalkIcons'
 import {
@@ -84,14 +82,6 @@ interface InputFormProps {
   submitLabel?: string
   /** Whether this is a follow-up form */
   isFollowUp?: boolean
-  /** Per-session prompt override (null = use default) */
-  sessionPrompt?: string | null
-  /** Default orchestrator prompt from settings */
-  defaultPrompt?: string
-  /** Update session prompt callback */
-  onSessionPromptChange?: (prompt: string | null) => void
-  /** Save prompt as new default callback */
-  onSavePromptAsDefault?: (prompt: string) => void
 }
 
 /**
@@ -131,13 +121,8 @@ export function InputForm({
   placeholder = 'What should we research?',
   submitLabel = 'Research',
   isFollowUp = false,
-  sessionPrompt,
-  defaultPrompt = '',
-  onSessionPromptChange,
-  onSavePromptAsDefault,
 }: InputFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [promptExpanded, setPromptExpanded] = useState(false)
   const [randomPlaceholder, setRandomPlaceholder] = useState('')
 
   // Pick a random placeholder on mount
@@ -148,9 +133,6 @@ export function InputForm({
 
   // Use random placeholder for main form, passed placeholder for follow-ups
   const effectivePlaceholder = isFollowUp ? placeholder : (randomPlaceholder || placeholder)
-
-  // Current effective prompt (session override or default)
-  const currentPrompt = sessionPrompt ?? defaultPrompt
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,11 +245,15 @@ export function InputForm({
               />
             </div>
 
-            {/* Submit button */}
+            {/* Submit button - cream when enabled, purple when disabled */}
             <button
               type="submit"
               disabled={isLoading || !query.trim()}
-              className="px-5 py-2 bg-paper-accent text-paper-bg rounded-lg font-medium hover:bg-paper-accent/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap inline-flex items-center gap-1.5"
+              className={`px-5 py-2 text-paper-bg rounded-lg font-medium text-sm whitespace-nowrap inline-flex items-center gap-1.5 transition-colors ${
+                isLoading || !query.trim()
+                  ? 'bg-paper-accent cursor-not-allowed'
+                  : 'bg-paper-enabled hover:bg-paper-enabled/90'
+              }`}
             >
               {isLoading ? <><ChalkLoading size={16} /> Working...</> : submitLabel}
             </button>
@@ -279,61 +265,6 @@ export function InputForm({
             selectedModels={selectedModels}
             onToggleModel={onToggleModel}
           />
-
-          {/* Per-Session Prompt Editor */}
-          {onSessionPromptChange && (
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setPromptExpanded(!promptExpanded)}
-                className="flex items-center gap-1 text-xs text-paper-muted hover:text-paper-text"
-              >
-                <span className="w-4">{promptExpanded ? <ChalkChevronDown size={14} /> : <ChalkChevronRight size={14} />}</span>
-                <span>{isFollowUp ? 'Customize context' : 'Customize summary prompt'}</span>
-                {sessionPrompt !== null && (
-                  <span className="ml-1 text-paper-accent text-[10px]">(modified)</span>
-                )}
-              </button>
-
-              {promptExpanded && (
-                <div className="mt-2 space-y-2">
-                  <textarea
-                    value={currentPrompt}
-                    onChange={(e) => onSessionPromptChange(e.target.value)}
-                    rows={8}
-                    className="w-full px-3 py-2 text-xs border border-paper-accent/30 rounded-lg bg-paper-bg text-paper-text font-mono resize-y placeholder:text-paper-muted"
-                    placeholder="Enter custom instructions for the summary..."
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-paper-muted">
-                      This session only
-                    </span>
-                    {onSavePromptAsDefault && sessionPrompt !== null && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSavePromptAsDefault(currentPrompt)
-                          onSessionPromptChange(null) // Reset to default since default now equals session
-                        }}
-                        className="text-[10px] text-paper-accent hover:underline"
-                      >
-                        Save as default
-                      </button>
-                    )}
-                    {sessionPrompt !== null && (
-                      <button
-                        type="button"
-                        onClick={() => onSessionPromptChange(null)}
-                        className="text-[10px] text-paper-muted hover:text-paper-text"
-                      >
-                        Reset
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </form>

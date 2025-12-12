@@ -781,10 +781,6 @@ export default function Home() {
             visibleModels={visibleModels}
             selectedModels={selectedModels}
             onToggleModel={toggleModel}
-            sessionPrompt={sessionPrompt}
-            defaultPrompt={settings.orchestratorPrompt || DEFAULT_ORCHESTRATOR_PROMPT}
-            onSessionPromptChange={setSessionPrompt}
-            onSavePromptAsDefault={handleSavePromptAsDefault}
           />
         )}
 
@@ -797,6 +793,10 @@ export default function Home() {
             onSubmit={handleAnswersSubmit}
             onSkip={handleSkipClarifying}
             isLoading={isLoading}
+            sessionPrompt={sessionPrompt}
+            defaultPrompt={settings.orchestratorPrompt ?? DEFAULT_ORCHESTRATOR_PROMPT}
+            onSessionPromptChange={setSessionPrompt}
+            onSavePromptAsDefault={handleSavePromptAsDefault}
           />
         )}
 
@@ -863,10 +863,6 @@ export default function Home() {
                 placeholder="Ask a follow-up question..."
                 submitLabel={isLoading ? '⏳' : 'Follow-up'}
                 isFollowUp={true}
-                sessionPrompt={sessionPrompt}
-                defaultPrompt={settings.orchestratorPrompt || DEFAULT_ORCHESTRATOR_PROMPT}
-                onSessionPromptChange={setSessionPrompt}
-                onSavePromptAsDefault={handleSavePromptAsDefault}
               />
             </div>
           </div>

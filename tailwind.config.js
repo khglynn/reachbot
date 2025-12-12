@@ -34,6 +34,7 @@ module.exports = {
           'warning-muted': '#78350F', // Dark amber bg
 
           // UI States
+          enabled: '#F2F2F2',      // Cream - "ready/active" elements (matches paper-text)
           hover: 'rgba(159, 122, 234, 0.15)',  // Accent with transparency
           active: 'rgba(159, 122, 234, 0.25)', // Stronger accent
           disabled: '#4B5563',     // Grayed out elements

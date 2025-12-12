@@ -100,6 +100,12 @@ npm run dev:fresh  # Clear .next cache + restart with Turbo
 | **Stripe** | Payment processing, auto top-up | Active (backend ready) |
 | **Canny** | Feature requests | Active (eachie.canny.io) |
 
+## Playwright for Visual Testing
+
+Use `playwright-eachie` MCP for this project (not generic playwright).
+
+This keeps browser sessions/logins isolated from other projects. Profile stored at `~/.playwright-eachie/`.
+
 ## Key Files
 
 | File | Purpose |

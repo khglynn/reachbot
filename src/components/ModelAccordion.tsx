@@ -55,7 +55,7 @@ export function ModelAccordion({
         className="w-full flex items-center justify-between px-3 py-2 bg-paper-card rounded-lg text-sm text-paper-muted hover:bg-paper-hover hover:text-paper-text transition-colors border border-paper-accent/30"
       >
         <span className="flex items-center gap-2">
-          <ChalkTarget size={16} />
+          <ChalkTarget size={16} className="text-paper-enabled" />
           <span className="font-medium text-paper-text">Models</span>
           <span className="text-paper-muted/70">
             ({selectedModels.length}/{MAX_SELECTED_MODELS} selected)
