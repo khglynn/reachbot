@@ -6,6 +6,18 @@ Work that's done. Newest at top.
 
 ## December 2024
 
+### Delete My Data (GDPR/CCPA Compliance)
+**Completed:** Dec 12, 2024
+**Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 2)
+
+- ✅ Created `/api/user/delete-data` endpoint
+- ✅ Anonymizes analytics data (research_queries, invite_codes)
+- ✅ Deletes user data via CASCADE (sessions, conversation_rounds)
+- ✅ Confirmation modal with warning text
+- ✅ Redirects to home after deletion
+
+---
+
 ### Server Error Tracking & Talk to Type
 **Completed:** Dec 12, 2024
 

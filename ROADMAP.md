@@ -4,25 +4,7 @@ What's next, in order. When done, move to `COMPLETED.md`.
 
 ---
 
-## 1. Legal Compliance
-**Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 2)
-
-Must exist BEFORE we store user content (chat history).
-
-**What:**
-- Update privacy policy with data storage disclosure
-- Update terms of service
-- "Delete My Data" endpoint + UI in settings
-- GDPR/CCPA compliance (right to access, delete, retention limits)
-
-**Files to create/modify:**
-- `app/privacy/page.tsx` - Update
-- `app/terms/page.tsx` - Update
-- `app/api/user/delete-data/route.ts` - New
-
----
-
-## 2. Friend Codes
+## 1. Friend Codes
 **Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 3)
 
 Growth feature - both parties get $6 when code redeemed.
@@ -40,13 +22,13 @@ Growth feature - both parties get $6 when code redeemed.
 
 ---
 
-## 3. Image Generation Mode
+## 2. Image Generation Mode
 
 Mode toggle: `text ↔ image`. Send prompt to multiple image models, compare results in grid.
 
 ---
 
-## 4. Chat History
+## 3. Chat History
 **Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 1)
 
 Server-side session storage for paid users. BYOK stays client-side only.
@@ -65,7 +47,7 @@ Server-side session storage for paid users. BYOK stays client-side only.
 
 ---
 
-## 5. Model Customization
+## 4. Model Customization
 **Plan:** `claude-plans/2024-12-12-model-customization.md`
 
 Let users add models, set defaults, browse model capabilities and pricing. Also publish enriched model table as free SEO/AEO resource at `/models`.
@@ -73,18 +55,18 @@ Let users add models, set defaults, browse model capabilities and pricing. Also 
 
 ---
 
-## 6. Storybook Component Library
+## 5. Storybook Component Library
 | `claude-plans/2024-12-10-storybook-component-library.md` |
 
 ---
 
-## 7. Model Packs
+## 6. Model Packs
 
 Curated model + prompt combos for use cases: Go Wide, Go Deep, Creative, Technical, Fast.
 
 ---
 
-## 8. API / MCP
+## 7. API / MCP
 
 REST API and MCP server for programmatic/agent access to multi-model research.
 
