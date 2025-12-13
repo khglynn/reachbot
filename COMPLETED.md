@@ -6,6 +6,21 @@ Work that's done. Newest at top.
 
 ## December 2024
 
+### Friend Codes
+**Completed:** Dec 13, 2024
+**Plan:** `claude-plans/2024-12-12-friend-codes.md`
+
+- ✅ Database tables: `referral_codes`, `referral_redemptions`
+- ✅ API endpoints: `/api/referral/code`, `/api/referral/redeem`
+- ✅ Code format: `EACHIE-WITH-ME-{initials}{emoji}{emoji}{emoji}`
+- ✅ 38 thematic emojis, 8 invites per user (base 8!)
+- ✅ $8 credit for both parties on redemption
+- ✅ Full UI: copy code, share to X/email, "Shuffle the sigils" refresh
+- ✅ Auto-redemption via `?ref=` URL param at signup
+- ✅ Turbopack enabled for faster builds
+
+---
+
 ### Delete My Data (GDPR/CCPA Compliance)
 **Completed:** Dec 12, 2024
 **Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 2)
