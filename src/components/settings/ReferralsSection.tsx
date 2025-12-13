@@ -162,7 +162,7 @@ export function ReferralsSection() {
             disabled={isRefreshing}
             className="text-xs text-paper-muted hover:text-paper-text transition-colors"
           >
-            {isRefreshing ? 'Refreshing...' : 'Different emojis please'}
+            {isRefreshing ? 'Spinning...' : 'Spin new symbols'}
           </button>
         </div>
 
@@ -287,12 +287,11 @@ export function ReferralsSection() {
       )}
 
       {/* How it works */}
-      <div className="text-xs text-paper-muted space-y-1 pt-2">
-        <p>When someone signs up with your code:</p>
-        <ul className="list-disc pl-4 space-y-0.5">
-          <li>They get <span className="text-paper-text">$8</span> in credits</li>
-          <li>You get <span className="text-paper-text">$8</span> in credits</li>
-        </ul>
+      <div className="bg-paper-surface/30 border border-paper-accent/20 rounded-lg p-4 text-center">
+        <p className="text-sm text-paper-muted mb-2">When a friend signs up with your code</p>
+        <p className="text-lg text-paper-text">
+          You both get <span className="text-paper-accent font-bold">$8</span> in credits
+        </p>
       </div>
     </div>
   )
