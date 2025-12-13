@@ -103,6 +103,10 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
       }
 
+      // Declare outside try so catch block can access them for error recording
+      let startTime = Date.now()
+      let analyticsQueryId: string | undefined
+
       try {
         const body = await request.json()
         const { query, attachments = [], modelIds, orchestratorId, orchestratorPrompt, apiKey, byokMode } = body
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
           return
         }
 
-        const startTime = Date.now()
+        startTime = Date.now() // Reset to actual start after parsing
 
         // Get device ID from header (for anonymous usage tracking)
         const deviceId = request.headers.get('X-Device-ID') || undefined
@@ -213,7 +217,6 @@ export async function POST(request: NextRequest) {
         }
 
         // Create analytics record for this research query
-        let analyticsQueryId: string | undefined
         if (process.env.DATABASE_URL && deviceId) {
           try {
             // Determine billing type
@@ -592,7 +595,23 @@ ${customPrompt}`
         sendEvent('complete', { result })
         controller.close()
       } catch (error) {
-        sendEvent('error', { message: error instanceof Error ? error.message : 'Research failed' })
+        const errorMessage = error instanceof Error ? error.message : 'Research failed'
+        sendEvent('error', { message: errorMessage })
+
+        // Record error in analytics if we have a query ID
+        if (analyticsQueryId) {
+          try {
+            await updateResearchQuery(analyticsQueryId, {
+              error_code: 'SYNTHESIS_FAILED',
+              error_type: 'synthesis_error',
+              error_message: errorMessage,
+              total_duration_ms: Date.now() - startTime,
+            })
+          } catch (e) {
+            console.warn('[Research] Failed to record error in analytics:', e)
+          }
+        }
+
         controller.close()
       }
     },

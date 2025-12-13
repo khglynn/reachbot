@@ -91,9 +91,13 @@ Instead of silent failure, show user-friendly error message.
 4. **DB error column** - Added `error_message` column to `research_queries` table
 
 ### Still TODO
-- Server needs to actually write to `error_message` column on failure
-- Requires capturing `queryId` after INSERT and updating on error
-- ~20 line change for another session
+- ~~Server needs to actually write to `error_message` column on failure~~ ✅ Done Dec 12
+- ~~Requires capturing `queryId` after INSERT and updating on error~~ ✅ Done Dec 12
+
+### Dec 12 Fix (Error Recording)
+- Moved `startTime` and `analyticsQueryId` outside try block for catch access
+- Added `error_message` to `ResearchQueryUpdate` interface and SQL
+- Catch block now calls `updateResearchQuery` with error details
 
 ### Commits
 - `9c67eba` - Fix blank page when navigating back from results

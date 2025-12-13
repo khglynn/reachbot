@@ -65,6 +65,7 @@ export interface ResearchQueryUpdate {
   synthesis_text?: string
   error_code?: string
   error_type?: string
+  error_message?: string
   total_cost_cents?: number
   total_duration_ms?: number
 }
@@ -148,6 +149,7 @@ export async function updateResearchQuery(
       synthesis_text = COALESCE(${update.synthesis_text ?? null}, synthesis_text),
       error_code = COALESCE(${update.error_code ?? null}, error_code),
       error_type = COALESCE(${update.error_type ?? null}, error_type),
+      error_message = COALESCE(${update.error_message ?? null}, error_message),
       total_cost_cents = COALESCE(${update.total_cost_cents ?? null}, total_cost_cents),
       total_duration_ms = COALESCE(${update.total_duration_ms ?? null}, total_duration_ms)
     WHERE id = ${queryId}::uuid
