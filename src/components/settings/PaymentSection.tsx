@@ -156,10 +156,10 @@ export function PaymentSection({
               />
             </div>
 
-            {/* OpenAI Key (optional, for voice) */}
+            {/* OpenAI Key (optional, for talk to type) */}
             <div>
               <label className="block text-xs font-medium text-paper-text/80 mb-1">
-                OpenAI Key <span className="text-paper-muted">(optional, for voice)</span>
+                OpenAI Key <span className="text-paper-muted">(optional, for talk to type)</span>
               </label>
               <input
                 type="password"

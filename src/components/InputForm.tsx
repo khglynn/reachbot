@@ -235,10 +235,10 @@ export function InputForm({
                 className="hidden"
               />
 
-              {/* Voice pill */}
+              {/* Talk to type pill */}
               <Pill
                 icon={<ChalkMic size={16} />}
-                label={isRecording ? 'Stop' : 'Voice'}
+                label={isRecording ? 'Stop' : 'Talk'}
                 recording={isRecording}
                 onClick={isRecording ? onStopRecording : onStartRecording}
                 disabled={isLoading}

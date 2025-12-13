@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
 /**
- * Voice transcription endpoint using OpenAI Whisper.
+ * Talk to type transcription endpoint using OpenAI Whisper.
  */
 export async function POST(request: Request) {
   try {
@@ -50,6 +51,13 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Transcription error:', error)
+
+    // Report to Sentry with context
+    Sentry.captureException(error, {
+      tags: { feature: 'talk-to-type' },
+      extra: { endpoint: 'transcribe' },
+    })
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Transcription failed' },
       { status: 500 }

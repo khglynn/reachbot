@@ -47,7 +47,7 @@ export interface OrchestratorOption {
 }
 
 /**
- * Voice transcription service configuration.
+ * Talk to type transcription service configuration.
  * Currently only OpenAI Whisper is supported.
  */
 export interface TranscriptionService {
@@ -271,7 +271,7 @@ export type Stage = 'input' | 'clarifying' | 'research' | 'results'
 export interface Settings {
   /** OpenRouter API key (required for BYOK mode) */
   openrouterKey: string
-  /** OpenAI key for Whisper voice transcription */
+  /** OpenAI key for talk to type (Whisper) */
   openaiKey: string
   /** Which model synthesizes responses */
   orchestrator: string

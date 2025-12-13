@@ -91,11 +91,11 @@ export function HelpModal({ onClose, byokMode }: HelpModalProps) {
               <ChalkAttach size={16} className="text-paper-accent" />
               Attachments &amp;
               <ChalkMic size={16} className="text-paper-accent" />
-              Voice
+              Talk to type
             </h3>
             <p className="mb-2">
-              Add up to 4 files for context. Use voice to speak your query instead
-              of typing.
+              Add up to 4 files for context. Use talk to type to speak your query
+              instead of typing.
             </p>
             <div className="bg-paper-bg rounded-lg p-3 text-xs border border-paper-accent/20">
               <p className="font-medium mb-1 text-paper-text">Supported file types:</p>
@@ -136,8 +136,8 @@ export function HelpModal({ onClose, byokMode }: HelpModalProps) {
               Settings
             </h3>
             <p>
-              Configure API keys (required in BYOK mode), choose synthesis model, select
-              voice service, or hide models you don't use.
+              Configure API keys (required in BYOK mode), choose synthesis model, or
+              hide models you don't use.
             </p>
           </section>
 

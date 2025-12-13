@@ -1,7 +1,7 @@
 /**
  * useVoiceRecorder Hook
  *
- * Handles browser audio recording via MediaRecorder API.
+ * Handles "talk to type" - browser audio recording via MediaRecorder API.
  * Records audio, then calls the transcription API to convert to text.
  *
  * @module hooks/useVoiceRecorder
@@ -24,7 +24,7 @@ interface UseVoiceRecorderOptions {
 }
 
 /**
- * Hook for voice recording and transcription.
+ * Hook for talk to type (recording and transcription).
  *
  * @example
  * const { isRecording, startRecording, stopRecording, isTranscribing } = useVoiceRecorder({

@@ -241,7 +241,7 @@ export const ORCHESTRATOR_OPTIONS: OrchestratorOption[] = [
 
 // ============================================================
 // TRANSCRIPTION SERVICE
-// Voice-to-text via OpenAI Whisper.
+// Talk to type via OpenAI Whisper.
 // ============================================================
 
 export const TRANSCRIPTION_SERVICE: TranscriptionService = {
