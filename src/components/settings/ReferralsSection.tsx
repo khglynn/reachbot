@@ -162,7 +162,7 @@ export function ReferralsSection() {
             disabled={isRefreshing}
             className="text-xs text-paper-muted hover:text-paper-text transition-colors"
           >
-            {isRefreshing ? 'Spinning...' : 'Spin new symbols'}
+            {isRefreshing ? 'Shuffling...' : 'Shuffle the sigils'}
           </button>
         </div>
 
