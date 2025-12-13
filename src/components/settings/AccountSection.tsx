@@ -11,7 +11,7 @@
 
 import { useState } from 'react'
 import { useClerk } from '@clerk/nextjs'
-import { ChalkDownload } from '@/components/ChalkIcons'
+import { ChalkDownload, ChalkClose } from '@/components/ChalkIcons'
 import type { UserSettings } from '@/types'
 
 interface AccountSectionProps {
@@ -36,6 +36,9 @@ export function AccountSection({
 }: AccountSectionProps) {
   const { signOut, openUserProfile } = useClerk()
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
@@ -44,6 +47,29 @@ export function AccountSection({
     } catch (error) {
       console.error('Sign out error:', error)
       setIsSigningOut(false)
+    }
+  }
+
+  const handleDeleteData = async () => {
+    setIsDeleting(true)
+    setDeleteError(null)
+
+    try {
+      const response = await fetch('/api/user/delete-data', {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete data')
+      }
+
+      // Sign out and redirect to home
+      await signOut({ redirectUrl: '/' })
+    } catch (error) {
+      console.error('Delete data error:', error)
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete data')
+      setIsDeleting(false)
     }
   }
 
@@ -137,18 +163,14 @@ export function AccountSection({
           Export Session Data
         </button>
 
-        {/* Delete Data - Disabled placeholder */}
+        {/* Delete Data */}
         <button
-          disabled
+          onClick={() => setShowDeleteModal(true)}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm
-            bg-paper-bg border border-paper-accent/20 rounded-lg
-            text-paper-muted cursor-not-allowed opacity-60"
-          title="Coming soon"
+            bg-paper-bg border border-paper-error/30 rounded-lg
+            text-paper-error hover:bg-paper-error/10 transition-colors"
         >
           Delete All My Data
-          <span className="text-xs bg-paper-surface px-1.5 py-0.5 rounded">
-            Coming soon
-          </span>
         </button>
 
         {/* Sign Out */}
@@ -163,6 +185,80 @@ export function AccountSection({
           {isSigningOut ? 'Signing out...' : 'Sign Out'}
         </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => !isDeleting && setShowDeleteModal(false)}
+        >
+          <div
+            className="bg-paper-card rounded-xl max-w-md w-full shadow-2xl chalk-frame"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-paper-divider">
+              <h2 className="text-lg font-semibold text-paper-error">
+                Delete All My Data?
+              </h2>
+              {!isDeleting && (
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="text-paper-muted hover:text-paper-text"
+                >
+                  <ChalkClose size={20} />
+                </button>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-paper-text/80">
+                This will <strong className="text-paper-error">permanently delete</strong> your:
+              </p>
+              <ul className="text-sm text-paper-muted space-y-1 list-disc pl-5">
+                <li>Research history and saved sessions</li>
+                <li>Account information</li>
+                <li>Usage data linked to your devices</li>
+              </ul>
+              <p className="text-sm text-paper-text/80">
+                Your Stripe billing history will be retained for refund purposes.
+                To delete your login, use &quot;Manage Profile&quot; above.
+              </p>
+
+              {deleteError && (
+                <p className="text-sm text-paper-error bg-paper-error/10 p-3 rounded-lg">
+                  {deleteError}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 px-6 py-4 border-t border-paper-divider">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 text-sm
+                  bg-paper-bg border border-paper-accent/30 rounded-lg
+                  text-paper-text hover:border-paper-accent/60 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteData}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2 text-sm
+                  bg-paper-error border border-paper-error rounded-lg
+                  text-white hover:bg-paper-error/90 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Everything'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
