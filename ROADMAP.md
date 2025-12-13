@@ -4,33 +4,7 @@ What's next, in order. When done, move to `COMPLETED.md`.
 
 ---
 
-## Bug Fix: Server Error Tracking
-**Doc:** `claude-plans/2024-12-11-bug-investigation-empty-results.md`
-
-Quick fix (~20 lines) - server needs to write to `error_message` column when synthesis fails. Column exists, just needs wiring up in `stream/route.ts`.
-
----
-
-## 1. Settings Page
-**Plan:** `claude-plans/2024-12-11-settings-page-foundation.md`
-
-User settings UI - foundation for everything below.
-
-**Sections:**
-- **Account** - email, sign out, export data, delete data
-- **Payment** - balance, Stripe portal, auto top-up (BYOK: "Upgrade to Eachie Me" CTA)
-- **Research Preferences** - orchestrator, prompt, model visibility (migrated from SettingsModal)
-- **Referrals** - placeholder for friend codes
-
-**Files to create:**
-- `app/settings/page.tsx` + `loading.tsx`
-- `app/api/user/settings/route.ts`
-- `app/api/user/billing-portal/route.ts`
-- `src/components/settings/` (6 components)
-
----
-
-## 2. Legal Compliance
+## 1. Legal Compliance
 **Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 2)
 
 Must exist BEFORE we store user content (chat history).
@@ -48,7 +22,7 @@ Must exist BEFORE we store user content (chat history).
 
 ---
 
-## 3. Friend Codes
+## 2. Friend Codes
 **Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 3)
 
 Growth feature - both parties get $6 when code redeemed.
@@ -66,13 +40,13 @@ Growth feature - both parties get $6 when code redeemed.
 
 ---
 
-## 4. Image Generation Mode
+## 3. Image Generation Mode
 
 Mode toggle: `text ↔ image`. Send prompt to multiple image models, compare results in grid.
 
 ---
 
-## 5. Chat History
+## 4. Chat History
 **Plan:** `claude-plans/2024-12-10-chat-history-legal-friends.md` (Part 1)
 
 Server-side session storage for paid users. BYOK stays client-side only.
@@ -91,7 +65,7 @@ Server-side session storage for paid users. BYOK stays client-side only.
 
 ---
 
-## 6. Model Customization
+## 5. Model Customization
 **Plan:** `claude-plans/2024-12-12-model-customization.md`
 
 Let users add models, set defaults, browse model capabilities and pricing. Also publish enriched model table as free SEO/AEO resource at `/models`.
@@ -99,36 +73,18 @@ Let users add models, set defaults, browse model capabilities and pricing. Also 
 
 ---
 
-## 7. Storybook Component Library
+## 6. Storybook Component Library
 | `claude-plans/2024-12-10-storybook-component-library.md` |
 
 ---
 
-## 8. Analytics Schema
-**Plan:** `claude-plans/2024-12-10-analytics-schema.md`
-
-Better data for insights and decision-making.
-
-**What:**
-- New tables: `research_queries`, `model_calls`, `dim_models`, `dim_dates`
-- Write analytics data from research API
-- PostHog events for behavioral tracking
-- Model sync cron job
-
-**Files to create:**
-- `src/server/queries/analytics.ts`
-- `src/server/queries/models.ts`
-- `app/api/cron/sync-models/route.ts`
-
----
-
-## 9. Model Packs
+## 7. Model Packs
 
 Curated model + prompt combos for use cases: Go Wide, Go Deep, Creative, Technical, Fast.
 
 ---
 
-## 10. API / MCP
+## 8. API / MCP
 
 REST API and MCP server for programmatic/agent access to multi-model research.
 

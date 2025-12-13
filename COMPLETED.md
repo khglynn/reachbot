@@ -6,6 +6,37 @@ Work that's done. Newest at top.
 
 ## December 2024
 
+### Server Error Tracking & Talk to Type
+**Completed:** Dec 12, 2024
+
+- ✅ Server now writes `error_message` to DB when synthesis fails
+- ✅ Added Sentry error reporting to transcribe endpoint
+- ✅ Renamed "Voice" → "Talk to type" across UI and codebase
+- ✅ Verified Sentry → Slack routing (#eachie-errors)
+
+---
+
+### Settings Page
+**Completed:** Dec 10, 2024
+**Plan:** `claude-plans/2024-12-10-plan1-stripe-auth-usage.md`
+
+- ✅ Settings page with account, billing, and API key management
+- ✅ Components: `SettingsHeader`, `AccountSection`, `BillingSection`, `PaymentSection`, `APIKeySection`, `TranscriptionSection`
+- ✅ Billing portal integration via `/api/user/billing-portal`
+- ✅ User settings storage and sync via `/api/user/settings`
+
+---
+
+### Analytics Schema
+**Completed:** Dec 10, 2024
+**Plan:** `claude-plans/2024-12-10-analytics-schema.md`
+
+- ✅ `research_queries` and `model_calls` tables for tracking usage
+- ✅ Analytics queries in `src/server/queries/analytics.ts`
+- ✅ Cost tracking per model call and per research query
+
+---
+
 ### Bug Fixes & Super Admin
 **Completed:** Dec 11, 2024
 **Plan:** `claude-plans/2024-12-11-bug-fixes.md`
